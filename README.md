@@ -25,7 +25,6 @@ Port of Max Payne for the R36S game console.
 | L1         | Bullet time      |
 | R1         | Shoot            |
 | L2         | Previous Weapon  |
-
 | R2         | Next Weapon      |
 | D-Up       | Pain Killer      |
 | D-Down     | Reload           |
