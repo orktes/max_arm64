@@ -1,0 +1,27 @@
+name: Makefile CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: CMake configure
+      run: cmake .
+
+    - name: Package
+      run: make package
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      if: github.ref_type == 'tag'
+      with:
+        files: package/*

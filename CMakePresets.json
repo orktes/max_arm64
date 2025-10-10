@@ -1,0 +1,82 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Default ARM64 Device Build",
+            "description": "Build for ARM64 device with GBM/DRM",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "BUILD_X11_DESKTOP": "OFF"
+            }
+        },
+        {
+            "name": "x11-desktop",
+            "displayName": "X11 Desktop Build",
+            "description": "Build for X11 desktop development/testing",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build_x11",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "BUILD_X11_DESKTOP": "ON"
+            }
+        },
+        {
+            "name": "debug",
+            "displayName": "Debug ARM64 Device Build",
+            "description": "Debug build for ARM64 device",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build_debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_X11_DESKTOP": "OFF"
+            }
+        },
+        {
+            "name": "debug-x11",
+            "displayName": "Debug X11 Desktop Build",
+            "description": "Debug build for X11 desktop",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build_x11_debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_X11_DESKTOP": "ON"
+            }
+        },
+        {
+            "name": "ninja",
+            "displayName": "Ninja Build (if available)",
+            "description": "Build using Ninja (faster builds)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build_ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "BUILD_X11_DESKTOP": "OFF"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default"
+        },
+        {
+            "name": "x11-desktop",
+            "configurePreset": "x11-desktop"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "debug-x11",
+            "configurePreset": "debug-x11"
+        },
+        {
+            "name": "ninja",
+            "configurePreset": "ninja"
+        }
+    ]
+}
