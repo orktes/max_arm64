@@ -1,6 +1,6 @@
-# Max Payne for r36s
+# Max Payne for R36S
 
-Port of Max Payne for the r36s game console.
+Port of Max Payne for the R36S game console.
 
 ## Installing
 
@@ -9,7 +9,7 @@ Port of Max Payne for the r36s game console.
 3. Retrieve the APK and OBB files from your Android device. You can use a apk extractor app or connect your device to a computer and copy the files directly. Many ways to achieve this so just google it.
 4. Copy the APK and OBB files over to the r36s console (SD card or over SSH). Place them in the `/roms/ports/maxpayne/` directory.
 5. Launch Max Payne from the Ports menu. The first time you launch the game, it will unpack the APK and OBB files. This may take a few minutes.
-6. After unpacking, the game will start loading. Enjoy playing Max Payne on your r36s!
+6. After unpacking, the game will start loading. Enjoy playing Max Payne on your R36S!
 
 ## Controls
 
