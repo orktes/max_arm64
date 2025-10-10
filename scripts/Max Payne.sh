@@ -90,10 +90,15 @@ fi
 
 cd $GAMEDIR
 
-pm_message "Starting Max Payne... This can take while."
+pm_message "Starting Max Payne... This can take a few seconds."
 
 # Remove debug log
 rm -f "debug.log"
+
+touch "debug.log"
+tail -f "debug.log" | while read LOGLINE; do
+   pm_message "$LOGLINE"
+done &
 
 ./maxpayne_arm64
 
