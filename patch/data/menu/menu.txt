@@ -15,6 +15,7 @@
 #define BG_BITMAP_ROCKSTAR	"bitmaps\Menu_RockstarCredits.tga"
 #define BG_BITMAP_LINCOLN	"bitmaps\Menu_LincolnCredits.tga"
 #define BG_BITMAP_RAGE		"bitmaps\Menu_bg_RAGECredits.tga"
+#define BG_BITMAP_CONTROLS  "bitmaps\Menu_bg_Controls.tga"
 
 [General]
 DefaultBackground	= BG_BITMAP_OPTIONS;
@@ -124,6 +125,20 @@ ControlSeparatorString = GCID_SEPARATOR;
 		[Message] String = "maxpayne_gamemode->gm_resetperformancemeasurements();";
 		[Message] String = "maxpayne_gamemode->gm_init( tutorial );";
 		[Message] String = "x_modeswitch->s_modeswitch( game );";
+	}
+
+	[Menu]
+	{
+		[Properties]
+		Name = "Controls";
+		ToolTip = "";
+		Headline = "";
+		Background = BG_BITMAP_CONTROLS;
+
+		[Back]
+		Name = "";
+		ToolTip = "";
+		ID = 0;
 	}
 /*
 	[Item]
