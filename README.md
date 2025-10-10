@@ -25,6 +25,7 @@ Port of Max Payne for the R36S game console.
 | L1         | Bullet time      |
 | R1         | Shoot            |
 | L2         | Previous Weapon  |
+
 | R2         | Next Weapon      |
 | D-Up       | Pain Killer      |
 | D-Down     | Reload           |
@@ -34,6 +35,8 @@ Port of Max Payne for the R36S game console.
 | Start      | Menu             |
 | Left Stick | Move             |
 | Right Stick| Look/Aim         |
+
+![Menu_bg_Controls](https://github.com/user-attachments/assets/717616df-078f-4770-b343-6cc4269e16fb)
 
 ## Known Issues
 - Aspect ration is a bit off for R36S's screen. This is due to Max Payne Mobile being optimised for widescreen devices. I'm trying to hack around the problem.
