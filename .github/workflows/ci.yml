@@ -22,11 +22,11 @@ jobs:
     - name: CMake configure
       run: cmake .
 
-    - name: Package
-      run: make package
+    - name: Archive
+      run: make archive
 
     - name: Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/v')
       with:
-        files: package/**
+        files: archive/maxpayne_arm64.zip
