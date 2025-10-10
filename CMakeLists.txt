@@ -108,7 +108,7 @@ add_custom_target(package-local
     COMMAND ${CMAKE_COMMAND} -E make_directory package/maxpayne
     COMMAND ${CMAKE_COMMAND} -E copy README.md package/maxpayne/README.md
     COMMAND ${CMAKE_COMMAND} -E copy ${TARGET_NAME} package/maxpayne/
-    COMMAND ${CMAKE_COMMAND} -E copy_directory overwrite package/maxpayne/overwrite
+    COMMAND ${CMAKE_COMMAND} -E copy_directory patch package/maxpayne/patch
     COMMAND ${CMAKE_COMMAND} -E copy "scripts/Max Payne.sh" "package/Max Payne.sh"
     DEPENDS ${TARGET_NAME}
     COMMENT "Creating package directory from local build"
@@ -141,7 +141,7 @@ add_custom_target(package
     COMMAND ${CMAKE_COMMAND} -E make_directory package/maxpayne
     COMMAND ${CMAKE_COMMAND} -E copy README.md package/README.md
     COMMAND ${CMAKE_COMMAND} -E copy maxpayne_arm64 package/maxpayne/
-    COMMAND ${CMAKE_COMMAND} -E copy_directory overwrite package/maxpayne/overwrite
+    COMMAND ${CMAKE_COMMAND} -E copy_directory patch package/maxpayne/patch
     COMMAND ${CMAKE_COMMAND} -E copy "scripts/Max Payne.sh" "package/Max Payne.sh"
     DEPENDS build-in-docker
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

@@ -57,12 +57,12 @@ unpack_obb() {
     pm_message "Unpacking OBB file... done"
 }
 
-handle_overwrite_files() {
-    pm_message "Handling overwrite files..." 
-    if [ -d "$GAMEDIR/overwrite" ]; then
-        rsync -a "$GAMEDIR/overwrite/" "$GAMEDIR/gamedata/"
+handle_patch_files() {
+    pm_message "Handling patch files..." 
+    if [ -d "$GAMEDIR/patch" ]; then
+        rsync -a "$GAMEDIR/patch/" "$GAMEDIR/gamedata/"
     fi
-    pm_message "Handling overwrite files... done"
+    pm_message "Handling patch files... done"
 }
 
 apk_count=$(ls -1 "$GAMEDIR/"*.apk 2>/dev/null | wc -l)
@@ -73,7 +73,7 @@ fi
 obb_count=$(ls -1 "$GAMEDIR/"*.obb 2>/dev/null | wc -l)
 if [ "$obb_count" -gt 0 ]; then
     unpack_obb
-    handle_overwrite_files
+    handle_patch_files
 fi
 
 if [ ! -f "$GAMEDIR/libMaxPayne.so" ]; then

@@ -13,7 +13,7 @@ debug.log
 gamedata/
 maxpayne_arm64
 maxpayne_x11
-overwrite/.DS_Store
+patch/.DS_Store
 package/
 temp/
 archive/
