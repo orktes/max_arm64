@@ -2,6 +2,9 @@
 
 Port of Max Payne for the R36S game console.
 
+![Devices](https://github.com/user-attachments/assets/541a65db-31b9-483f-a5dd-63b76a830da8)
+
+
 ## Installing
 
 1. Install Max Payne for R36S by extracting the [package](https://github.com/orktes/max_r36s/releases/latest/download/maxpayne_arm64.zip) into `/roms/ports/` of your SD card.
