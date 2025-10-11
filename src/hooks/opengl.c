@@ -48,11 +48,22 @@ static Window x11_window = 0;
 #endif
 
 #ifndef __X11_DESKTOP__
-static int fb_fd = -1; // Framebuffer file descriptor (fallback)
+// Display mode tracking
+typedef enum {
+  DISPLAY_MODE_NONE = 0,
+  DISPLAY_MODE_DRM_GBM,
+  DISPLAY_MODE_FB0
+} DisplayMode;
+
+static DisplayMode display_mode = DISPLAY_MODE_NONE;
+
+// Framebuffer variables (for FB0 fallback)
+static int fb_fd = -1;
 static struct fb_var_screeninfo fb_var;
 static struct fb_fix_screeninfo fb_fix;
-static void *fb_mem = NULL; // Framebuffer memory mapping (fallback)
+static void *fb_mem = NULL;
 static size_t fb_size = 0;
+static int fb_page_offset = 0; // For double buffering
 
 // GBM/DRM variables for modern graphics
 static int drm_fd = -1;
@@ -64,44 +75,112 @@ static drmModeRes *drm_resources = NULL;
 static drmModeCrtc *crtc = NULL;
 static drmModeConnector *connector = NULL;
 
-// R36S device detection and display configuration
+// Display configuration
 static int display_width = 0;
 static int display_height = 0;
 #endif
 
 #ifndef __X11_DESKTOP__
+// Initialize framebuffer fallback mode
+static int init_fb0(void)
+{
+  debugPrintf("=== Initializing FB0 Framebuffer Mode ===\n");
+
+  // Open framebuffer device
+  fb_fd = open("/dev/fb0", O_RDWR);
+  if (fb_fd < 0)
+  {
+    debugPrintf("✗ Cannot open /dev/fb0: %s\n", strerror(errno));
+    return -1;
+  }
+  debugPrintf("✓ Opened /dev/fb0\n");
+
+  // Get variable screen info
+  if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &fb_var) < 0)
+  {
+    debugPrintf("✗ Cannot get variable screen info: %s\n", strerror(errno));
+    close(fb_fd);
+    fb_fd = -1;
+    return -1;
+  }
+
+  // Get fixed screen info
+  if (ioctl(fb_fd, FBIOGET_FSCREENINFO, &fb_fix) < 0)
+  {
+    debugPrintf("✗ Cannot get fixed screen info: %s\n", strerror(errno));
+    close(fb_fd);
+    fb_fd = -1;
+    return -1;
+  }
+
+  display_width = fb_var.xres;
+  display_height = fb_var.yres;
+
+  debugPrintf("✓ Framebuffer info:\n");
+  debugPrintf("  Resolution: %dx%d\n", display_width, display_height);
+  debugPrintf("  Virtual: %dx%d\n", fb_var.xres_virtual, fb_var.yres_virtual);
+  debugPrintf("  Bits per pixel: %d\n", fb_var.bits_per_pixel);
+  debugPrintf("  Line length: %d\n", fb_fix.line_length);
+
+  // Setup double buffering if possible
+  if (fb_var.yres_virtual >= fb_var.yres * 2)
+  {
+    debugPrintf("✓ Double buffering available\n");
+  }
+  else
+  {
+    debugPrintf("⚠ No double buffering (virtual height: %d)\n", fb_var.yres_virtual);
+  }
+
+  // Calculate framebuffer size
+  fb_size = fb_fix.line_length * fb_var.yres_virtual;
+
+  // Map framebuffer memory
+  fb_mem = mmap(NULL, fb_size, PROT_READ | PROT_WRITE, MAP_SHARED, fb_fd, 0);
+  if (fb_mem == MAP_FAILED)
+  {
+    debugPrintf("✗ Cannot map framebuffer memory: %s\n", strerror(errno));
+    close(fb_fd);
+    fb_fd = -1;
+    return -1;
+  }
+  debugPrintf("✓ Mapped framebuffer memory (%zu bytes)\n", fb_size);
+
+  // Try to switch console to graphics mode
+  int console_fd = open("/dev/tty0", O_RDWR);
+  if (console_fd >= 0)
+  {
+    if (ioctl(console_fd, KDSETMODE, KD_GRAPHICS) == 0)
+    {
+      debugPrintf("✓ Switched console to graphics mode\n");
+    }
+    close(console_fd);
+  }
+
+  // Update global screen size variables
+  extern int screen_width, screen_height;
+  screen_width = display_width;
+  screen_height = display_height;
+  debugPrintf("✓ Set game screen size to %dx%d\n", screen_width, screen_height);
+
+  display_mode = DISPLAY_MODE_FB0;
+  return 0;
+}
+
 // Initialize GBM+DRM for modern graphics
 static int init_drm_gbm(void)
 {
   debugPrintf("=== Initializing GBM+DRM Graphics ===\n");
 
-  // debugPrintf("=== DISPLAY PROCESS DIAGNOSTICS ===\n");
-  // system("ps aux | grep -E '(X|wayland|weston|kms|drm|fb)' | grep -v grep | head -10");
-  // system("lsof /dev/dri/card0 2>/dev/null | head -5");
-  // system("lsof /dev/fb0 2>/dev/null | head -5");
-  // system("cat /sys/class/graphics/fb0/state 2>/dev/null || echo 'No fb0 state'");
-  // debugPrintf("=== END DIAGNOSTICS ===\n");
-
-  // First, try to disable console to take control of display
-  // debugPrintf("Attempting to take control from console...\n");
+  // Try to disable console to take control of display
   int console_fd = open("/dev/tty0", O_RDWR);
   if (console_fd >= 0)
   {
-    // Try to switch to graphics mode
     if (ioctl(console_fd, KDSETMODE, KD_GRAPHICS) == 0)
     {
-      // debugPrintf("✓ Switched console to graphics mode\n");
-    }
-    else
-    {
-      // debugPrintf("⚠ Could not switch console to graphics mode: %s\n", strerror(errno));
-      // debugPrintf("  (This might be why page flip fails)\n");
+      debugPrintf("✓ Switched console to graphics mode\n");
     }
     close(console_fd);
-  }
-  else
-  {
-    // debugPrintf("⚠ Could not open /dev/tty0: %s\n", strerror(errno));
   }
 
   // Open DRM device
@@ -118,7 +197,6 @@ static int init_drm_gbm(void)
   {
     debugPrintf("⚠ Could not become DRM master: %s\n", strerror(errno));
     debugPrintf("  Another process might be controlling the display\n");
-    debugPrintf("  Try: sudo pkill X; sudo pkill Xorg; sudo pkill weston\n");
   }
   else
   {
@@ -130,6 +208,8 @@ static int init_drm_gbm(void)
   if (!drm_resources)
   {
     debugPrintf("✗ Cannot get DRM resources\n");
+    close(drm_fd);
+    drm_fd = -1;
     return -1;
   }
   debugPrintf("✓ Got DRM resources: %d connectors, %d crtcs\n",
@@ -141,7 +221,6 @@ static int init_drm_gbm(void)
     connector = drmModeGetConnector(drm_fd, drm_resources->connectors[i]);
     if (connector && connector->connection == DRM_MODE_CONNECTED && connector->count_modes > 0)
     {
-      // Detect device type based on native resolution
       int native_width = connector->modes[0].hdisplay;
       int native_height = connector->modes[0].vdisplay;
 
@@ -163,6 +242,10 @@ static int init_drm_gbm(void)
   if (!connector)
   {
     debugPrintf("✗ No connected display found\n");
+    drmModeFreeResources(drm_resources);
+    drm_resources = NULL;
+    close(drm_fd);
+    drm_fd = -1;
     return -1;
   }
 
@@ -170,41 +253,29 @@ static int init_drm_gbm(void)
   if (drm_resources->count_crtcs > 0)
   {
     crtc = drmModeGetCrtc(drm_fd, drm_resources->crtcs[0]);
-    if (crtc)
-    {
-      // debugPrintf("✓ Got CRTC ID %d: %dx%d, mode_valid=%d\n",
-      //        crtc->crtc_id, crtc->mode.hdisplay, crtc->mode.vdisplay, crtc->mode_valid);
-      // debugPrintf("  Current buffer_id: %d, x=%d, y=%d\n", crtc->buffer_id, crtc->x, crtc->y);
-      // if (crtc->mode_valid) {
-      // debugPrintf("  Mode: %s %dx%d @%dHz\n", crtc->mode.name,
-      //          crtc->mode.hdisplay, crtc->mode.vdisplay, crtc->mode.vrefresh);
-      // }
-    }
   }
 
   if (!crtc)
   {
     debugPrintf("✗ No CRTC available\n");
+    drmModeFreeConnector(connector);
+    connector = NULL;
+    drmModeFreeResources(drm_resources);
+    drm_resources = NULL;
+    close(drm_fd);
+    drm_fd = -1;
     return -1;
   }
 
-  // Check if CRTC is already being used
-  // if (crtc->buffer_id != 0) {
-  // debugPrintf("⚠ CRTC %d already has buffer %d attached - another process is using it\n",
-  //          crtc->crtc_id, crtc->buffer_id);
-  // }
-
-  // Set display mode if not already set properly
+  // Set display mode if needed
   if (crtc->mode_valid == 0 || crtc->mode.hdisplay == 0)
   {
-    // Find the best display mode - prefer higher refresh rates to reduce tearing
     drmModeModeInfo *best_mode = &connector->modes[0];
     uint32_t best_refresh = connector->modes[0].vrefresh;
 
     for (int i = 1; i < connector->count_modes; i++)
     {
       drmModeModeInfo *mode = &connector->modes[i];
-      // Prefer same resolution with higher refresh rate
       if (mode->hdisplay == best_mode->hdisplay &&
           mode->vdisplay == best_mode->vdisplay &&
           mode->vrefresh > best_refresh)
@@ -214,25 +285,18 @@ static int init_drm_gbm(void)
       }
     }
 
-    debugPrintf("Setting display mode: %s %dx%d @%dHz (optimized for tear reduction)\n",
+    debugPrintf("Setting display mode: %s %dx%d @%dHz\n",
                 best_mode->name, best_mode->hdisplay, best_mode->vdisplay, best_mode->vrefresh);
 
-    // Set CRTC with the connector and mode
     if (drmModeSetCrtc(drm_fd, crtc->crtc_id, 0, 0, 0,
                        &connector->connector_id, 1, best_mode) != 0)
     {
       debugPrintf("✗ Failed to set CRTC mode: %s\n", strerror(errno));
-      debugPrintf("  This might mean another process has control\n");
-      // Don't return -1, continue anyway and try page flip without mode set
     }
     else
     {
-      debugPrintf("✓ Set CRTC mode to %dx%d @%dHz\n", best_mode->hdisplay, best_mode->vdisplay, best_mode->vrefresh);
+      debugPrintf("✓ Set CRTC mode\n");
     }
-  }
-  else
-  {
-    debugPrintf("✓ CRTC already has valid mode set\n");
   }
 
   // Create GBM device
@@ -240,25 +304,45 @@ static int init_drm_gbm(void)
   if (!gbm_device)
   {
     debugPrintf("✗ Cannot create GBM device\n");
+    drmModeFreeCrtc(crtc);
+    crtc = NULL;
+    drmModeFreeConnector(connector);
+    connector = NULL;
+    drmModeFreeResources(drm_resources);
+    drm_resources = NULL;
+    close(drm_fd);
+    drm_fd = -1;
     return -1;
   }
   debugPrintf("✓ Created GBM device\n");
 
-  // Create GBM surface for the detected display
+  // Create GBM surface
   gbm_surface = gbm_surface_create(gbm_device, display_width, display_height, GBM_FORMAT_XRGB8888,
                                    GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
   if (!gbm_surface)
   {
     debugPrintf("✗ Cannot create GBM surface\n");
+    gbm_device_destroy(gbm_device);
+    gbm_device = NULL;
+    drmModeFreeCrtc(crtc);
+    crtc = NULL;
+    drmModeFreeConnector(connector);
+    connector = NULL;
+    drmModeFreeResources(drm_resources);
+    drm_resources = NULL;
+    close(drm_fd);
+    drm_fd = -1;
     return -1;
   }
+  debugPrintf("✓ Created GBM surface\n");
 
-  // Update global screen size variables for the game
+  // Update global screen size variables
   extern int screen_width, screen_height;
   screen_width = display_width;
   screen_height = display_height;
   debugPrintf("✓ Set game screen size to %dx%d\n", screen_width, screen_height);
 
+  display_mode = DISPLAY_MODE_DRM_GBM;
   return 0;
 }
 #endif // __X11_DESKTOP__
@@ -401,7 +485,7 @@ int NVEventEGLInit(void)
   }
   debugPrintf("✓ EGL context made current\n");
 
-  // Enable VSync for smooth rendering if configured
+  // Enable VSync
   int vsync_interval = config.vsync_enabled ? 1 : 0;
   if (!eglSwapInterval(display, vsync_interval))
   {
@@ -416,12 +500,25 @@ int NVEventEGLInit(void)
   debugPrintf("✓ X11 EGL initialization complete\n");
 
 #else
-  // R36S device initialization with EGL/GBM
-  // Try GBM+DRM initialization first
-  if (init_drm_gbm() == 0)
+  // R36S device initialization
+  // Try DRM/GBM first, then fall back to FB0
+  if (init_drm_gbm() != 0)
   {
-    debugPrintf("✓ GBM+DRM initialization successful, setting up EGL...\n");
+    debugPrintf("GBM+DRM failed, trying FB0 fallback...\n");
+    if (init_fb0() != 0)
+    {
+      debugPrintf("✗ Both DRM/GBM and FB0 initialization failed\n");
+      debugPrintf("Using stub mode - game will run with audio and input only\n");
+      display = (EGLDisplay)0x1;
+      surface = (EGLSurface)0x1;
+      context = (EGLContext)0x1;
+      return 1;
+    }
+  }
 
+  // Initialize EGL based on display mode
+  if (display_mode == DISPLAY_MODE_DRM_GBM)
+  {
     // Get EGL display using GBM platform
     PFNEGLGETPLATFORMDISPLAYEXTPROC get_platform_display = NULL;
     get_platform_display = (void *)eglGetProcAddress("eglGetPlatformDisplayEXT");
@@ -432,35 +529,23 @@ int NVEventEGLInit(void)
     }
     else
     {
-      debugPrintf("✗ eglGetPlatformDisplayEXT not available, trying default\n");
       display = eglGetDisplay((EGLNativeDisplayType)gbm_device);
     }
-
-    if (display == EGL_NO_DISPLAY)
-    {
-      debugPrintf("✗ Failed to get EGL display from GBM device\n");
-      display = NULL;
-    }
   }
-  else
+  else if (display_mode == DISPLAY_MODE_FB0)
   {
-    debugPrintf("✗ GBM+DRM initialization failed, falling back to legacy methods\n");
-  }
-
-  // Fallback to default display if GBM failed
-  if (!display)
-  {
-    // debugPrintf("Attempting fallback to default EGL display...\n");
+    // Use default display for FB0 mode
     display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if (!display || display == EGL_NO_DISPLAY)
-    {
-      debugPrintf("✗ Default EGL display also failed: 0x%x\n", eglGetError());
-      debugPrintf("Using stub mode - game will run with audio and input only\n");
-      display = (EGLDisplay)0x1;
-      surface = (EGLSurface)0x1;
-      context = (EGLContext)0x1;
-      return 1;
-    }
+    debugPrintf("✓ Got default EGL display for FB0 mode\n");
+  }
+
+  if (!display || display == EGL_NO_DISPLAY)
+  {
+    debugPrintf("✗ Failed to get EGL display: 0x%x\n", eglGetError());
+    display = (EGLDisplay)0x1;
+    surface = (EGLSurface)0x1;
+    context = (EGLContext)0x1;
+    return 1;
   }
 
   EGLint major, minor;
@@ -502,9 +587,8 @@ int NVEventEGLInit(void)
   }
   debugPrintf("✓ Found EGL config\n");
 
-  // Create EGL surface
-#ifndef __X11_DESKTOP__
-  if (gbm_surface)
+  // Create EGL surface based on display mode
+  if (display_mode == DISPLAY_MODE_DRM_GBM && gbm_surface)
   {
     surface = eglCreateWindowSurface(display, egl_config, (EGLNativeWindowType)gbm_surface, NULL);
     if (surface == EGL_NO_SURFACE)
@@ -519,10 +603,11 @@ int NVEventEGLInit(void)
   }
   else
   {
-    debugPrintf("No GBM surface available, creating pbuffer...\n");
+    // For FB0 mode, create a pbuffer surface
+    debugPrintf("Creating pbuffer surface for FB0 mode...\n");
     const EGLint pbuffer_attribs[] = {
-        EGL_WIDTH, 720,
-        EGL_HEIGHT, 720,
+        EGL_WIDTH, display_width,
+        EGL_HEIGHT, display_height,
         EGL_NONE};
     surface = eglCreatePbufferSurface(display, egl_config, pbuffer_attribs);
     if (surface == EGL_NO_SURFACE)
@@ -532,26 +617,9 @@ int NVEventEGLInit(void)
     }
     else
     {
-      debugPrintf("✓ Created pbuffer surface (720x720)\n");
+      debugPrintf("✓ Created pbuffer surface (%dx%d)\n", display_width, display_height);
     }
   }
-#else
-  // Create a pbuffer surface for desktop
-  const EGLint pbuffer_attribs[] = {
-      EGL_WIDTH, 1280,
-      EGL_HEIGHT, 720,
-      EGL_NONE};
-  surface = eglCreatePbufferSurface(display, egl_config, pbuffer_attribs);
-  if (surface == EGL_NO_SURFACE)
-  {
-    debugPrintf("✗ Cannot create pbuffer surface: 0x%x\n", eglGetError());
-    surface = (EGLSurface)0x1;
-  }
-  else
-  {
-    debugPrintf("✓ Created pbuffer surface for desktop\n");
-  }
-#endif
 
   // Create EGL context
   const EGLint context_attribs[] = {
@@ -566,7 +634,7 @@ int NVEventEGLInit(void)
   }
   else
   {
-    // debugPrintf("✓ Created EGL context\n");
+    debugPrintf("✓ Created EGL context\n");
   }
 
   // Make context current
@@ -578,9 +646,9 @@ int NVEventEGLInit(void)
     }
     else
     {
-      // debugPrintf("✓ EGL context made current\n");
+      debugPrintf("✓ EGL context made current\n");
 
-      // Enable VSync for smooth rendering and prevent screen tearing if configured
+      // Enable VSync
       int vsync_interval = config.vsync_enabled ? 1 : 0;
       if (!eglSwapInterval(display, vsync_interval))
       {
@@ -589,126 +657,180 @@ int NVEventEGLInit(void)
       }
       else
       {
-        debugPrintf("✓ VSync %s to prevent screen tearing\n",
-                    config.vsync_enabled ? "enabled" : "disabled");
+        debugPrintf("✓ VSync %s\n", config.vsync_enabled ? "enabled" : "disabled");
       }
 
       // Test rendering
-      glClearColor(1.0f, 0.0f, 0.0f, 1.0f); // Red screen
+      glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT);
 
-      // Set viewport to match detected screen size
       extern int screen_width, screen_height;
       glViewport(0, 0, screen_width, screen_height);
 
       eglSwapBuffers(display, surface);
-      // debugPrintf("✓ Test render completed\n");
+      debugPrintf("✓ Test render completed\n");
     }
   }
 
-  // debugPrintf("=== EGL initialization complete ===\n");
-  
-  // Now that graphics are initialized and screen dimensions are set,
-  // update the game's internal windowSize to match our actual screen
-  //update_game_window_size_to_screen();
-  
+  debugPrintf("=== EGL initialization complete (mode: %s) ===\n",
+              display_mode == DISPLAY_MODE_DRM_GBM ? "DRM/GBM" : "FB0");
+
   return 1;
 #endif
 }
 
 void NVEventEGLSwapBuffers(void)
 {
-  // R36S device swap buffers
   if (display != (EGLDisplay)0x1 && surface != (EGLSurface)0x1)
   {
     // Always do EGL swap buffers first
     eglSwapBuffers(display, surface);
 
 #ifndef __X11_DESKTOP__
-    // Handle GBM surface and proper double buffering
-    if (gbm_surface && drm_fd >= 0 && crtc && connector)
+    if (display_mode == DISPLAY_MODE_DRM_GBM)
     {
-      struct gbm_bo *bo = gbm_surface_lock_front_buffer(gbm_surface);
-      if (bo)
+      // Handle GBM surface with DRM page flipping
+      if (gbm_surface && drm_fd >= 0 && crtc && connector)
       {
-        uint32_t handle = gbm_bo_get_handle(bo).u32;
-        uint32_t pitch = gbm_bo_get_stride(bo);
-        uint32_t fb_id_local;
-
-        // Create framebuffer for this buffer object
-        int add_fb_result = drmModeAddFB(drm_fd, display_width, display_height, 32, 32, pitch, handle, &fb_id_local);
-        if (add_fb_result == 0)
+        struct gbm_bo *bo = gbm_surface_lock_front_buffer(gbm_surface);
+        if (bo)
         {
-          // For the first frame, use drmModeSetCrtc to establish the mode
-          static int first_frame = 1;
-          if (first_frame)
+          uint32_t handle = gbm_bo_get_handle(bo).u32;
+          uint32_t pitch = gbm_bo_get_stride(bo);
+          uint32_t fb_id_local;
+
+          int add_fb_result = drmModeAddFB(drm_fd, display_width, display_height, 32, 32, pitch, handle, &fb_id_local);
+          if (add_fb_result == 0)
           {
-            int set_result = drmModeSetCrtc(drm_fd, crtc->crtc_id, fb_id_local, 0, 0,
-                                            &connector->connector_id, 1, &connector->modes[0]);
-            if (set_result == 0)
+            static int first_frame = 1;
+            if (first_frame)
             {
-              debugPrintf("✓ First frame displayed successfully!\n");
-              first_frame = 0;
+              int set_result = drmModeSetCrtc(drm_fd, crtc->crtc_id, fb_id_local, 0, 0,
+                                              &connector->connector_id, 1, &connector->modes[0]);
+              if (set_result == 0)
+              {
+                debugPrintf("✓ First frame displayed (DRM/GBM)\n");
+                first_frame = 0;
+              }
             }
             else
             {
-              debugPrintf("✗ Failed to set initial CRTC: %s\n", strerror(errno));
-            }
-          }
-          else
-          {
-            // For subsequent frames, use page flip with VBlank synchronization for smooth, tear-free transitions
-            int flip_result = drmModePageFlip(drm_fd, crtc->crtc_id, fb_id_local, DRM_MODE_PAGE_FLIP_EVENT, NULL);
-            if (flip_result != 0)
-            {
-              // Track page flip failures to detect if we need to use different approach
-              static int page_flip_failures = 0;
-              page_flip_failures++;
-
-              if (page_flip_failures < 10)
-              {
-                // Try page flip without event flag as fallback
-                flip_result = drmModePageFlip(drm_fd, crtc->crtc_id, fb_id_local, 0, NULL);
-              }
-
+              int flip_result = drmModePageFlip(drm_fd, crtc->crtc_id, fb_id_local, DRM_MODE_PAGE_FLIP_EVENT, NULL);
               if (flip_result != 0)
               {
-                // Final fallback to CRTC set if page flip consistently fails
-                // This may cause tearing but ensures display still works
-                drmModeSetCrtc(drm_fd, crtc->crtc_id, fb_id_local, 0, 0,
-                               &connector->connector_id, 1, &connector->modes[0]);
-                if (page_flip_failures == 10)
+                static int page_flip_failures = 0;
+                page_flip_failures++;
+
+                if (page_flip_failures < 10)
                 {
-                  debugPrintf("⚠ Warning: Page flip consistently failing, using immediate mode (may cause tearing)\n");
+                  flip_result = drmModePageFlip(drm_fd, crtc->crtc_id, fb_id_local, 0, NULL);
+                }
+
+                if (flip_result != 0)
+                {
+                  drmModeSetCrtc(drm_fd, crtc->crtc_id, fb_id_local, 0, 0,
+                                 &connector->connector_id, 1, &connector->modes[0]);
+                  if (page_flip_failures == 10)
+                  {
+                    debugPrintf("⚠ Page flip failing, using immediate mode\n");
+                  }
                 }
               }
             }
-          }
 
-          // Clean up previous framebuffer
-          if (previous_fb_id != 0)
+            if (previous_fb_id != 0)
+            {
+              drmModeRmFB(drm_fd, previous_fb_id);
+            }
+            if (previous_bo)
+            {
+              gbm_surface_release_buffer(gbm_surface, previous_bo);
+            }
+
+            previous_fb_id = fb_id_local;
+            previous_bo = bo;
+          }
+          else
           {
-            drmModeRmFB(drm_fd, previous_fb_id);
+            gbm_surface_release_buffer(gbm_surface, bo);
           }
-          if (previous_bo)
-          {
-            gbm_surface_release_buffer(gbm_surface, previous_bo);
-          }
-
-          // Store current buffer for next frame
-          previous_fb_id = fb_id_local;
-          previous_bo = bo;
-
-          // static int frame_count = 0;
-          // frame_count++;
-          // if (frame_count % 300 == 0) {
-          // debugPrintf("Graphics: Frame %d displayed\n", frame_count);
-          // }
         }
-        else
+      }
+    }
+    else if (display_mode == DISPLAY_MODE_FB0)
+    {
+      // Handle FB0 framebuffer display
+      if (fb_fd >= 0 && fb_mem && fb_mem != MAP_FAILED)
+      {
+        // Read the rendered frame from EGL
+        static unsigned char *pixel_buffer = NULL;
+        if (!pixel_buffer)
         {
-          // debugPrintf("✗ Failed to add framebuffer: %s\n", strerror(errno));
-          gbm_surface_release_buffer(gbm_surface, bo);
+          pixel_buffer = (unsigned char *)malloc(display_width * display_height * 4);
+        }
+
+        if (pixel_buffer)
+        {
+          // Read pixels from OpenGL
+          glReadPixels(0, 0, display_width, display_height, GL_RGBA, GL_UNSIGNED_BYTE, pixel_buffer);
+
+          // Copy to framebuffer with format conversion if needed
+          int bytes_per_pixel = fb_var.bits_per_pixel / 8;
+          int fb_line_length = fb_fix.line_length;
+
+          // Calculate offset for double buffering
+          char *fb_ptr = (char *)fb_mem + (fb_page_offset * fb_line_length * display_height);
+
+          for (int y = 0; y < display_height; y++)
+          {
+            // OpenGL has origin at bottom-left, framebuffer at top-left
+            int gl_y = display_height - 1 - y;
+            unsigned char *src = pixel_buffer + (gl_y * display_width * 4);
+            unsigned char *dst = (unsigned char *)fb_ptr + (y * fb_line_length);
+
+            for (int x = 0; x < display_width; x++)
+            {
+              unsigned char r = src[0];
+              unsigned char g = src[1];
+              unsigned char b = src[2];
+
+              if (bytes_per_pixel == 4)
+              {
+                // RGBA8888 or XRGB8888
+                dst[0] = b;
+                dst[1] = g;
+                dst[2] = r;
+                dst[3] = 0xFF;
+              }
+              else if (bytes_per_pixel == 2)
+              {
+                // RGB565
+                unsigned short color = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+                *((unsigned short *)dst) = color;
+              }
+              else if (bytes_per_pixel == 3)
+              {
+                // RGB888
+                dst[0] = b;
+                dst[1] = g;
+                dst[2] = r;
+              }
+
+              src += 4;
+              dst += bytes_per_pixel;
+            }
+          }
+
+          // Flip to the page we just wrote if double buffering is available
+          if (fb_var.yres_virtual >= fb_var.yres * 2)
+          {
+            fb_var.yoffset = fb_page_offset * display_height;
+            if (ioctl(fb_fd, FBIOPAN_DISPLAY, &fb_var) == 0)
+            {
+              // Switch to other buffer for next frame
+              fb_page_offset = 1 - fb_page_offset;
+            }
+          }
         }
       }
     }
@@ -720,13 +842,11 @@ void patch_opengl(void)
 {
   debugPrintf("patch_opengl: Starting OpenGL patching\n");
 
-  // patch egl stuff
   debugPrintf("patch_opengl: Hooking EGL functions\n");
   hook_arm64(so_find_addr("_Z14NVEventEGLInitv"), (uintptr_t)NVEventEGLInit);
   hook_arm64(so_find_addr("_Z21NVEventEGLMakeCurrentv"), (uintptr_t)NVEventEGLMakeCurrent);
   hook_arm64(so_find_addr("_Z23NVEventEGLUnmakeCurrentv"), (uintptr_t)NVEventEGLUnmakeCurrent);
   hook_arm64(so_find_addr("_Z21NVEventEGLSwapBuffersv"), (uintptr_t)NVEventEGLSwapBuffers);
-
 
   debugPrintf("patch_opengl: OpenGL patching completed\n");
 }
@@ -754,37 +874,37 @@ void deinit_opengl(void)
   }
   debugPrintf("✓ X11/EGL cleaned up\n");
 #else
-#ifndef __X11_DESKTOP__
-  // Restore console mode before cleanup
+  // Restore console mode
   int console_fd = open("/dev/tty0", O_RDWR);
   if (console_fd >= 0)
   {
     ioctl(console_fd, KDSETMODE, KD_TEXT);
-    // debugPrintf("Restored console to text mode\n");
     close(console_fd);
   }
 
-  // Clean up framebuffer
-  if (previous_fb_id != 0 && drm_fd >= 0)
+  // Clean up based on display mode
+  if (display_mode == DISPLAY_MODE_DRM_GBM)
   {
-    drmModeRmFB(drm_fd, previous_fb_id);
-    previous_fb_id = 0;
+    // Clean up DRM/GBM resources
+    if (previous_fb_id != 0 && drm_fd >= 0)
+    {
+      drmModeRmFB(drm_fd, previous_fb_id);
+      previous_fb_id = 0;
+    }
+
+    if (previous_bo && gbm_surface)
+    {
+      gbm_surface_release_buffer(gbm_surface, previous_bo);
+      previous_bo = NULL;
+    }
+
+    if (drm_fd >= 0)
+    {
+      drmDropMaster(drm_fd);
+    }
   }
 
-  // Clean up previous buffer
-  if (previous_bo && gbm_surface)
-  {
-    gbm_surface_release_buffer(gbm_surface, previous_bo);
-    previous_bo = NULL;
-  }
-
-  // Drop DRM master
-  if (drm_fd >= 0)
-  {
-    drmDropMaster(drm_fd);
-  }
-#endif
-
+  // Clean up EGL
   if (display && display != (EGLDisplay)0x1)
   {
     eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -795,8 +915,7 @@ void deinit_opengl(void)
     eglTerminate(display);
   }
 
-#ifndef __X11_DESKTOP__
-  // Clean up GBM/DRM resources
+  // Clean up GBM resources
   if (gbm_surface)
   {
     gbm_surface_destroy(gbm_surface);
@@ -809,6 +928,7 @@ void deinit_opengl(void)
     gbm_device = NULL;
   }
 
+  // Clean up DRM resources
   if (connector)
   {
     drmModeFreeConnector(connector);
@@ -833,6 +953,7 @@ void deinit_opengl(void)
     drm_fd = -1;
   }
 
+  // Clean up FB0 resources
   if (fb_mem && fb_mem != MAP_FAILED)
   {
     munmap(fb_mem, fb_size);
@@ -844,6 +965,7 @@ void deinit_opengl(void)
     close(fb_fd);
     fb_fd = -1;
   }
-#endif
+
+  debugPrintf("✓ Graphics resources cleaned up\n");
 #endif
 }

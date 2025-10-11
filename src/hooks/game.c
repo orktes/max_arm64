@@ -16,6 +16,7 @@
 #include <threads.h>
 #include <unistd.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_gamecontroller.h>
 
 #include "../config.h"
 #include "../util.h"
@@ -54,38 +55,48 @@ static int *definedDevice;
 static uint8_t fake_tls[0x100];
 
 
-// Joystick and input state
-static int joystick_initialized = 0;
-static SDL_Joystick *joystick = NULL;
+// GameController and input state
+static int gamecontroller_initialized = 0;
+static SDL_GameController *gamecontroller = NULL;
 
 static float l2_axis = 0.0f;
 static float r2_axis = 0.0f;
 static int r1_pressed = 0;
 
-// Initialize SDL2 for gamepad support
-static void init_joystick(void) {
-  if (joystick_initialized) return;
+// Initialize SDL2 GameController for gamepad support
+static void init_gamecontroller(void) {
+  if (gamecontroller_initialized) return;
   
-  if (SDL_Init(SDL_INIT_JOYSTICK) < 0) {
-    debugPrintf("SDL joystick init failed: %s\n", SDL_GetError());
+  if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
+    debugPrintf("SDL gamecontroller init failed: %s\n", SDL_GetError());
     return;
   }
   
-  // Check if gamepad is present
+  // Check if gamecontroller is present
   int num_joysticks = SDL_NumJoysticks();
   if (num_joysticks > 0) {
-    joystick = SDL_JoystickOpen(0);
-    if (joystick) {
-      const char* name = SDL_JoystickName(joystick);
-      debugPrintf("INPUT DEBUG: Found joystick: %s\n", name ? name : "Unknown");
-    } else {
-      debugPrintf("INPUT DEBUG: Failed to open joystick: %s\n", SDL_GetError());
+    // Find first gamecontroller
+    for (int i = 0; i < num_joysticks; i++) {
+      if (SDL_IsGameController(i)) {
+        gamecontroller = SDL_GameControllerOpen(i);
+        if (gamecontroller) {
+          const char* name = SDL_GameControllerName(gamecontroller);
+          debugPrintf("INPUT DEBUG: Found gamecontroller: %s\n", name ? name : "Unknown");
+          break;
+        } else {
+          debugPrintf("INPUT DEBUG: Failed to open gamecontroller %d: %s\n", i, SDL_GetError());
+        }
+      }
+    }
+    
+    if (!gamecontroller) {
+      debugPrintf("INPUT DEBUG: No compatible gamecontroller found\n");
     }
   } else {
     debugPrintf("INPUT DEBUG: No joystick found\n");
   }
   
-  joystick_initialized = 1;
+  gamecontroller_initialized = 1;
 }
 
 
@@ -168,14 +179,14 @@ char *OS_FileGetArchiveName(int mode) {
 void ExitAndroidGame(int code) {
   debugPrintf("ExitAndroidGame: code=%d\n", code);
   
-  // Cleanup SDL2
-  if (joystick) {
-    SDL_JoystickClose(joystick);
-    joystick = NULL;
+  // Cleanup SDL2 GameController
+  if (gamecontroller) {
+    SDL_GameControllerClose(gamecontroller);
+    gamecontroller = NULL;
   }
-  if (joystick_initialized) {
+  if (gamecontroller_initialized) {
     SDL_Quit();
-    joystick_initialized = 0;
+    gamecontroller_initialized = 0;
   }
   
   // deinit openal
@@ -271,55 +282,62 @@ int WarGamepad_GetGamepadType(int padnum) {
 }
 
 uint32_t WarGamepad_GetGamepadButtons(int padnum) {
-	if (!joystick_initialized) {
-		init_joystick();
+	if (!gamecontroller_initialized) {
+		init_gamecontroller();
 	}
 
-	if (!joystick) {
+	if (!gamecontroller) {
 		return 0;
 	}
 
-	SDL_JoystickUpdate();
+	SDL_GameControllerUpdate();
 	
 	uint32_t mask = 0;
 	
-	// R36S button mapping to SDL joystick buttons
-  if (SDL_JoystickGetButton(joystick, 0))  // A button
-    mask |= BTN_A;
-  if (SDL_JoystickGetButton(joystick, 1))  // B button
+	// GameController button mapping using standard SDL_GameControllerButton enum
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_A))
+    mask |= BTN_A;    
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_B))
     mask |= BTN_B;
-  if (SDL_JoystickGetButton(joystick, 2))  // X button
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_X))
     mask |= BTN_X;
-  if (SDL_JoystickGetButton(joystick, 3))  // Y button
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_Y))
     mask |= BTN_Y;
-  if (SDL_JoystickGetButton(joystick, 13)) // Start button
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_START))
     mask |= BTN_START;
-  if (SDL_JoystickGetButton(joystick, 12)) // Select/Guide button
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_BACK))
     mask |= BTN_BACK;
-  if (SDL_JoystickGetButton(joystick, 4))  // L1
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER))
     mask |= BTN_L1;
-  if (SDL_JoystickGetButton(joystick, 5)) { // R1
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) {
     mask |= BTN_R1;
     r1_pressed = 1;
   } else {
     // R1 not pressed; reset r1_pressed state
     r1_pressed = 0;
   }
-  if (SDL_JoystickGetButton(joystick, 6)) // L2
-    l2_axis = 1.0f; // treat as fully pressed
-  else
+  
+  // Handle trigger buttons (L2/R2) - these may be analog or digital depending on controller
+  if (SDL_GameControllerGetAxis(gamecontroller, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > 16384) {
+    l2_axis = SDL_GameControllerGetAxis(gamecontroller, SDL_CONTROLLER_AXIS_TRIGGERLEFT) / 32767.0f;
+  } else {
     l2_axis = 0.0f;
-  if (SDL_JoystickGetButton(joystick, 7)) // R2
-    r2_axis = 1.0f; // treat as fully pressed
-  else
+  }
+  
+  if (SDL_GameControllerGetAxis(gamecontroller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16384) {
+    r2_axis = SDL_GameControllerGetAxis(gamecontroller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.0f;
+  } else {
     r2_axis = 0.0f;
-  if (SDL_JoystickGetButton(joystick, 8))  // D-pad up
+  }
+  
+  // D-pad
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_DPAD_UP))
     mask |= BTN_DPAD_UP;
-  if (SDL_JoystickGetButton(joystick, 9))  // D-pad down
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_DPAD_DOWN))
     mask |= BTN_DPAD_DOWN;
-  if (SDL_JoystickGetButton(joystick, 10)) // D-pad left
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_DPAD_LEFT))
     mask |= BTN_DPAD_LEFT;
-  if (SDL_JoystickGetButton(joystick, 11)) // D-pad right
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT))
     mask |= BTN_DPAD_RIGHT;
     
 	return mask;
@@ -327,27 +345,34 @@ uint32_t WarGamepad_GetGamepadButtons(int padnum) {
 
 
 float WarGamepad_GetGamepadAxis(int padnum, int axis) {
-	if (!joystick_initialized) {
-		init_joystick();
+	if (!gamecontroller_initialized) {
+		init_gamecontroller();
 	}
 
-	if (!joystick) {
+	if (!gamecontroller) {
 		return 0.0f;
 	}
 
-	SDL_JoystickUpdate();
-	
-	if (SDL_JoystickNumAxes(joystick) <= axis) {
-    if (axis == 4 || axis == 5) {
-      // L2/R2 analog triggers not present; return last known value
-      return (axis == 4) ? l2_axis : r2_axis;
-    }
-
-		return 0.0f;
-	}
+	SDL_GameControllerUpdate();
 	
 	float value = 0.0f;
-	Sint16 raw_value = SDL_JoystickGetAxis(joystick, axis);
+	
+	// Map axis indices to SDL_GameControllerAxis enum
+	SDL_GameControllerAxis controller_axis;
+	switch (axis) {
+		case 0: controller_axis = SDL_CONTROLLER_AXIS_LEFTX; break;      // Left stick X
+		case 1: controller_axis = SDL_CONTROLLER_AXIS_LEFTY; break;      // Left stick Y  
+		case 2: controller_axis = SDL_CONTROLLER_AXIS_RIGHTX; break;     // Right stick X
+		case 3: controller_axis = SDL_CONTROLLER_AXIS_RIGHTY; break;     // Right stick Y
+		case 4: // L2 trigger
+			return l2_axis;
+		case 5: // R2 trigger
+			return r2_axis;
+		default:
+			return 0.0f;
+	}
+	
+	Sint16 raw_value = SDL_GameControllerGetAxis(gamecontroller, controller_axis);
 	
 	// Convert from Sint16 (-32768 to 32767) to float (-1.0 to 1.0)
 	value = raw_value / 32767.0f;
