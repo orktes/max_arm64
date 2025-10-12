@@ -7,8 +7,8 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -19,15 +19,15 @@
 #include <AL/alext.h>
 #include <AL/efx.h>
 
-#include "../util.h"
 #include "../so_util.h"
+#include "../util.h"
 
 static ALCcontext *al_ctx = NULL;
 static ALCdevice *al_dev = NULL;
 
 ALCcontext *alcCreateContextHook(ALCdevice *dev, const ALCint *unused) {
   // override 22050hz with 44100hz in case someone wants high quality sounds
-  const ALCint attr[] = { ALC_FREQUENCY, 44100, 0 };
+  const ALCint attr[] = {ALC_FREQUENCY, 44100, 0};
   al_ctx = alcCreateContext(dev, attr); // capture context for later deinit
   return al_ctx;
 }
@@ -42,10 +42,14 @@ void patch_openal(void) {
   // used for openal
   hook_arm64(so_find_addr("InitializeCriticalSection"), (uintptr_t)ret0);
   // openal API
-  hook_arm64(so_find_addr("alAuxiliaryEffectSlotf"), (uintptr_t)alAuxiliaryEffectSlotf);
-  hook_arm64(so_find_addr("alAuxiliaryEffectSlotfv"), (uintptr_t)alAuxiliaryEffectSlotfv);
-  hook_arm64(so_find_addr("alAuxiliaryEffectSloti"), (uintptr_t)alAuxiliaryEffectSloti);
-  hook_arm64(so_find_addr("alAuxiliaryEffectSlotiv"), (uintptr_t)alAuxiliaryEffectSlotiv);
+  hook_arm64(so_find_addr("alAuxiliaryEffectSlotf"),
+             (uintptr_t)alAuxiliaryEffectSlotf);
+  hook_arm64(so_find_addr("alAuxiliaryEffectSlotfv"),
+             (uintptr_t)alAuxiliaryEffectSlotfv);
+  hook_arm64(so_find_addr("alAuxiliaryEffectSloti"),
+             (uintptr_t)alAuxiliaryEffectSloti);
+  hook_arm64(so_find_addr("alAuxiliaryEffectSlotiv"),
+             (uintptr_t)alAuxiliaryEffectSlotiv);
   hook_arm64(so_find_addr("alBuffer3f"), (uintptr_t)alBuffer3f);
   hook_arm64(so_find_addr("alBuffer3i"), (uintptr_t)alBuffer3i);
   hook_arm64(so_find_addr("alBufferData"), (uintptr_t)alBufferData);
@@ -53,7 +57,8 @@ void patch_openal(void) {
   hook_arm64(so_find_addr("alBufferfv"), (uintptr_t)alBufferfv);
   hook_arm64(so_find_addr("alBufferi"), (uintptr_t)alBufferi);
   hook_arm64(so_find_addr("alBufferiv"), (uintptr_t)alBufferiv);
-  hook_arm64(so_find_addr("alDeleteAuxiliaryEffectSlots"), (uintptr_t)alDeleteAuxiliaryEffectSlots);
+  hook_arm64(so_find_addr("alDeleteAuxiliaryEffectSlots"),
+             (uintptr_t)alDeleteAuxiliaryEffectSlots);
   hook_arm64(so_find_addr("alDeleteBuffers"), (uintptr_t)alDeleteBuffers);
   hook_arm64(so_find_addr("alDeleteEffects"), (uintptr_t)alDeleteEffects);
   hook_arm64(so_find_addr("alDeleteFilters"), (uintptr_t)alDeleteFilters);
@@ -71,15 +76,20 @@ void patch_openal(void) {
   hook_arm64(so_find_addr("alFilterfv"), (uintptr_t)alFilterfv);
   hook_arm64(so_find_addr("alFilteri"), (uintptr_t)alFilteri);
   hook_arm64(so_find_addr("alFilteriv"), (uintptr_t)alFilteriv);
-  hook_arm64(so_find_addr("alGenAuxiliaryEffectSlots"), (uintptr_t)alGenAuxiliaryEffectSlots);
+  hook_arm64(so_find_addr("alGenAuxiliaryEffectSlots"),
+             (uintptr_t)alGenAuxiliaryEffectSlots);
   hook_arm64(so_find_addr("alGenBuffers"), (uintptr_t)alGenBuffers);
   hook_arm64(so_find_addr("alGenEffects"), (uintptr_t)alGenEffects);
   hook_arm64(so_find_addr("alGenFilters"), (uintptr_t)alGenFilters);
   hook_arm64(so_find_addr("alGenSources"), (uintptr_t)alGenSources);
-  hook_arm64(so_find_addr("alGetAuxiliaryEffectSlotf"), (uintptr_t)alGetAuxiliaryEffectSlotf);
-  hook_arm64(so_find_addr("alGetAuxiliaryEffectSlotfv"), (uintptr_t)alGetAuxiliaryEffectSlotfv);
-  hook_arm64(so_find_addr("alGetAuxiliaryEffectSloti"), (uintptr_t)alGetAuxiliaryEffectSloti);
-  hook_arm64(so_find_addr("alGetAuxiliaryEffectSlotiv"), (uintptr_t)alGetAuxiliaryEffectSlotiv);
+  hook_arm64(so_find_addr("alGetAuxiliaryEffectSlotf"),
+             (uintptr_t)alGetAuxiliaryEffectSlotf);
+  hook_arm64(so_find_addr("alGetAuxiliaryEffectSlotfv"),
+             (uintptr_t)alGetAuxiliaryEffectSlotfv);
+  hook_arm64(so_find_addr("alGetAuxiliaryEffectSloti"),
+             (uintptr_t)alGetAuxiliaryEffectSloti);
+  hook_arm64(so_find_addr("alGetAuxiliaryEffectSlotiv"),
+             (uintptr_t)alGetAuxiliaryEffectSlotiv);
   hook_arm64(so_find_addr("alGetBoolean"), (uintptr_t)alGetBoolean);
   hook_arm64(so_find_addr("alGetBooleanv"), (uintptr_t)alGetBooleanv);
   hook_arm64(so_find_addr("alGetBuffer3f"), (uintptr_t)alGetBuffer3f);
@@ -118,11 +128,13 @@ void patch_openal(void) {
   hook_arm64(so_find_addr("alGetSourcei"), (uintptr_t)alGetSourcei);
   hook_arm64(so_find_addr("alGetSourceiv"), (uintptr_t)alGetSourceiv);
   hook_arm64(so_find_addr("alGetString"), (uintptr_t)alGetString);
-  hook_arm64(so_find_addr("alIsAuxiliaryEffectSlot"), (uintptr_t)alIsAuxiliaryEffectSlot);
+  hook_arm64(so_find_addr("alIsAuxiliaryEffectSlot"),
+             (uintptr_t)alIsAuxiliaryEffectSlot);
   hook_arm64(so_find_addr("alIsBuffer"), (uintptr_t)alIsBuffer);
   hook_arm64(so_find_addr("alIsEffect"), (uintptr_t)alIsEffect);
   hook_arm64(so_find_addr("alIsEnabled"), (uintptr_t)alIsEnabled);
-  hook_arm64(so_find_addr("alIsExtensionPresent"), (uintptr_t)alIsExtensionPresent);
+  hook_arm64(so_find_addr("alIsExtensionPresent"),
+             (uintptr_t)alIsExtensionPresent);
   hook_arm64(so_find_addr("alIsFilter"), (uintptr_t)alIsFilter);
   hook_arm64(so_find_addr("alIsSource"), (uintptr_t)alIsSource);
   hook_arm64(so_find_addr("alListener3f"), (uintptr_t)alListener3f);
@@ -137,48 +149,78 @@ void patch_openal(void) {
   hook_arm64(so_find_addr("alSourcePausev"), (uintptr_t)alSourcePausev);
   hook_arm64(so_find_addr("alSourcePlay"), (uintptr_t)alSourcePlay);
   hook_arm64(so_find_addr("alSourcePlayv"), (uintptr_t)alSourcePlayv);
-  hook_arm64(so_find_addr("alSourceQueueBuffers"), (uintptr_t)alSourceQueueBuffers);
+  hook_arm64(so_find_addr("alSourceQueueBuffers"),
+             (uintptr_t)alSourceQueueBuffers);
   hook_arm64(so_find_addr("alSourceRewind"), (uintptr_t)alSourceRewind);
   hook_arm64(so_find_addr("alSourceRewindv"), (uintptr_t)alSourceRewindv);
   hook_arm64(so_find_addr("alSourceStop"), (uintptr_t)alSourceStop);
   hook_arm64(so_find_addr("alSourceStopv"), (uintptr_t)alSourceStopv);
-  hook_arm64(so_find_addr("alSourceUnqueueBuffers"), (uintptr_t)alSourceUnqueueBuffers);
+  hook_arm64(so_find_addr("alSourceUnqueueBuffers"),
+             (uintptr_t)alSourceUnqueueBuffers);
   hook_arm64(so_find_addr("alSourcef"), (uintptr_t)alSourcef);
   hook_arm64(so_find_addr("alSourcefv"), (uintptr_t)alSourcefv);
   hook_arm64(so_find_addr("alSourcei"), (uintptr_t)alSourcei);
   hook_arm64(so_find_addr("alSourceiv"), (uintptr_t)alSourceiv);
   hook_arm64(so_find_addr("alSpeedOfSound"), (uintptr_t)alSpeedOfSound);
   hook_arm64(so_find_addr("al_print"), (uintptr_t)ret0);
-  hook_arm64(so_find_addr("alcCaptureCloseDevice"), (uintptr_t)alcCaptureCloseDevice);
-  hook_arm64(so_find_addr("alcCaptureOpenDevice"), (uintptr_t)alcCaptureOpenDevice);
+  hook_arm64(so_find_addr("alcCaptureCloseDevice"),
+             (uintptr_t)alcCaptureCloseDevice);
+  hook_arm64(so_find_addr("alcCaptureOpenDevice"),
+             (uintptr_t)alcCaptureOpenDevice);
   hook_arm64(so_find_addr("alcCaptureSamples"), (uintptr_t)alcCaptureSamples);
   hook_arm64(so_find_addr("alcCaptureStart"), (uintptr_t)alcCaptureStart);
   hook_arm64(so_find_addr("alcCaptureStop"), (uintptr_t)alcCaptureStop);
   hook_arm64(so_find_addr("alcCloseDevice"), (uintptr_t)alcCloseDevice);
   hook_arm64(so_find_addr("alcCreateContext"), (uintptr_t)alcCreateContextHook);
   hook_arm64(so_find_addr("alcDestroyContext"), (uintptr_t)alcDestroyContext);
-  hook_arm64(so_find_addr("alcGetContextsDevice"), (uintptr_t)alcGetContextsDevice);
-  hook_arm64(so_find_addr("alcGetCurrentContext"), (uintptr_t)alcGetCurrentContext);
+  hook_arm64(so_find_addr("alcGetContextsDevice"),
+             (uintptr_t)alcGetContextsDevice);
+  hook_arm64(so_find_addr("alcGetCurrentContext"),
+             (uintptr_t)alcGetCurrentContext);
   hook_arm64(so_find_addr("alcGetEnumValue"), (uintptr_t)alcGetEnumValue);
   hook_arm64(so_find_addr("alcGetError"), (uintptr_t)alcGetError);
   hook_arm64(so_find_addr("alcGetIntegerv"), (uintptr_t)alcGetIntegerv);
   hook_arm64(so_find_addr("alcGetProcAddress"), (uintptr_t)alcGetProcAddress);
   hook_arm64(so_find_addr("alcGetString"), (uintptr_t)alcGetString);
-  hook_arm64(so_find_addr("alcGetThreadContext"), (uintptr_t)alcGetThreadContext);
-  hook_arm64(so_find_addr("alcIsExtensionPresent"), (uintptr_t)alcIsExtensionPresent);
-  hook_arm64(so_find_addr("alcMakeContextCurrent"), (uintptr_t)alcMakeContextCurrent);
+  hook_arm64(so_find_addr("alcGetThreadContext"),
+             (uintptr_t)alcGetThreadContext);
+  hook_arm64(so_find_addr("alcIsExtensionPresent"),
+             (uintptr_t)alcIsExtensionPresent);
+  hook_arm64(so_find_addr("alcMakeContextCurrent"),
+             (uintptr_t)alcMakeContextCurrent);
   hook_arm64(so_find_addr("alcOpenDevice"), (uintptr_t)alcOpenDeviceHook);
   hook_arm64(so_find_addr("alcProcessContext"), (uintptr_t)alcProcessContext);
-  hook_arm64(so_find_addr("alcSetThreadContext"), (uintptr_t)alcSetThreadContext);
+  hook_arm64(so_find_addr("alcSetThreadContext"),
+             (uintptr_t)alcSetThreadContext);
   hook_arm64(so_find_addr("alcSuspendContext"), (uintptr_t)alcSuspendContext);
 }
 
 void deinit_openal(void) {
+  debugPrintf("=== Starting OpenAL cleanup ===\n");
+
   if (al_dev) {
+    debugPrintf("OpenAL device found, proceeding with cleanup...\n");
+
     if (al_ctx) {
+      debugPrintf("Making OpenAL context current (NULL)...\n");
       alcMakeContextCurrent(NULL);
+      debugPrintf("✓ OpenAL context set to NULL\n");
+
+      debugPrintf("Destroying OpenAL context...\n");
       alcDestroyContext(al_ctx);
+      debugPrintf("✓ OpenAL context destroyed\n");
+      al_ctx = NULL;
+    } else {
+      debugPrintf("No OpenAL context to destroy\n");
     }
+
+    debugPrintf("Closing OpenAL device...\n");
     alcCloseDevice(al_dev);
+    debugPrintf("✓ OpenAL device closed\n");
+    al_dev = NULL;
+  } else {
+    debugPrintf("No OpenAL device to cleanup\n");
   }
+
+  debugPrintf("=== OpenAL cleanup completed ===\n");
 }

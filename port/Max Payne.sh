@@ -90,6 +90,8 @@ cd $GAMEDIR
 
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 
+$GPTOKEYB "maxpayne_arm64" & pm_platform_helper "$GAMEDIR/maxpayne_arm64"
+
 pm_message "Starting Max Payne... This can take a few seconds."
 
 # Remove debug log
@@ -100,6 +102,6 @@ tail -f "debug.log" | while read LOGLINE; do
    pm_message "$LOGLINE"
 done &
 
-./maxpayne_arm64
+./maxpayne_arm64 
 
 pm_finish

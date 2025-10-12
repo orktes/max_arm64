@@ -30,12 +30,12 @@ Port of Max Payne for the R36S game console.
 | D-Down     | Reload           |
 | D-Left     | Previous Weapon  |
 | D-Right    | Next Weapon      |
-| Select     | Quicksave        |
+| Select+R1  | Quicksave        |
 | Start      | Menu             |
 | Left Stick | Move             |
 | Right Stick| Look/Aim         |
 
-![Menu_bg_Controls](https://github.com/user-attachments/assets/ba129d3d-c709-44d5-a7f9-7f9ce285f374)
+![Menu_bg_Controls](https://github.com/user-attachments/assets/a818d8d9-3787-4108-b043-a3a3db2c7eb5)
 
 ## Known Issues
 - Aspect ration is a bit off for R36S's screen. This is due to Max Payne Mobile being optimised for widescreen devices. I'm trying to hack around the problem.

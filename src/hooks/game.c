@@ -10,6 +10,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_gamecontroller.h>
 #include <math.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -22,6 +23,32 @@
 #include "../hooks.h"
 #include "../so_util.h"
 #include "../util.h"
+
+// Signal handler for debugging crashes
+static void crash_handler(int sig) {
+  debugPrintf("=== CRASH DETECTED ===\n");
+  debugPrintf("Signal: %d (%s)\n", sig,
+              sig == SIGSEGV   ? "SIGSEGV"
+              : sig == SIGABRT ? "SIGABRT"
+              : sig == SIGFPE  ? "SIGFPE"
+                               : "UNKNOWN");
+  debugPrintf("This usually indicates memory corruption or accessing "
+              "freed/invalid memory\n");
+  debugPrintf(
+      "Check the log above this point for the last successful operation\n");
+  debugPrintf("=== END CRASH INFO ===\n");
+
+  // Don't try to cleanup, just exit immediately
+  _exit(128 + sig);
+}
+
+// Install crash handler
+static void install_crash_handler(void) {
+  signal(SIGSEGV, crash_handler);
+  signal(SIGABRT, crash_handler);
+  signal(SIGFPE, crash_handler);
+  debugPrintf("Crash handler installed\n");
+}
 
 #define APK_PATH "main.obb"
 
@@ -177,26 +204,42 @@ char *OS_FileGetArchiveName(int mode) {
 }
 
 void ExitAndroidGame(int code) {
-  debugPrintf("ExitAndroidGame: code=%d\n", code);
+  debugPrintf("=== ExitAndroidGame called with code=%d ===\n", code);
 
   // Cleanup SDL2 GameController
+  debugPrintf("Cleaning up SDL2 GameController...\n");
   if (gamecontroller) {
+    debugPrintf("Closing SDL2 GameController...\n");
     SDL_GameControllerClose(gamecontroller);
     gamecontroller = NULL;
+    debugPrintf("✓ SDL2 GameController closed\n");
   }
   if (gamecontroller_initialized) {
+    debugPrintf("Quitting SDL2...\n");
     SDL_Quit();
     gamecontroller_initialized = 0;
+    debugPrintf("✓ SDL2 quit\n");
   }
 
   // deinit openal
+  debugPrintf("Calling deinit_openal()...\n");
   deinit_openal();
+  debugPrintf("✓ deinit_openal() completed\n");
+
   // deinit EGL
+  debugPrintf("Calling deinit_opengl()...\n");
   deinit_opengl();
-  // unmap lib
-  so_unload();
-  // die
-  exit(0);
+  debugPrintf("✓ deinit_opengl() completed\n");
+
+  // IMPORTANT: Don't unmap lib before exit as it may contain cleanup code
+  // that gets called by exit() or atexit handlers
+  debugPrintf(
+      "All cleanup completed, calling _exit(%d) to avoid destructors...\n",
+      code);
+
+  // Use _exit instead of exit to avoid calling atexit handlers
+  // which might reference unmapped memory
+  _exit(code);
 }
 
 // this is supposed to allocate and return a thread handle struct, but the game
@@ -303,6 +346,18 @@ uint32_t WarGamepad_GetGamepadButtons(int padnum) {
   uint32_t mask = 0;
 
   // GameController button mapping using standard SDL_GameControllerButton enum
+
+  // handle quicksave (SELECT + R1)
+  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_BACK)) {
+    if (SDL_GameControllerGetButton(gamecontroller,
+                                    SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) {
+      mask |= BTN_BACK;
+      return mask; // return immediately to avoid other inputs
+    } else {
+      return mask; // Just ignore buttons to avoid confusion
+    }
+  }
+
   if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_A))
     mask |= BTN_A;
   if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_B))
@@ -313,8 +368,6 @@ uint32_t WarGamepad_GetGamepadButtons(int padnum) {
     mask |= BTN_Y;
   if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_START))
     mask |= BTN_START;
-  if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_BACK))
-    mask |= BTN_BACK;
   if (SDL_GameControllerGetButton(gamecontroller,
                                   SDL_CONTROLLER_BUTTON_LEFTSHOULDER))
     mask |= BTN_L1;
@@ -476,6 +529,9 @@ void *NVThreadGetCurrentJNIEnv(void) {
 }
 
 void patch_game(void) {
+  // Install crash handler early for debugging
+  install_crash_handler();
+
   // No platform-specific input initialization needed for ARM64 Linux
   debugPrintf("patch_game: Starting game patching\n");
 
