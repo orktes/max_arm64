@@ -37,11 +37,10 @@ unpack_apk() {
     rsync -a "$GAMEDIR/.apktemp/lib/arm64-v8a/" "$GAMEDIR/"
 
     # Move assets
-    rsync -a "$GAMEDIR/.apktemp/assets/" "$GAMEDIR/gamedata/"
-
+    rsync -a "$GAMEDIR/.apktemp/assets/" "$GAMEDIR/gamedata/" && rm "$GAMEDIR/"*.apk
 
     rm -rf "$GAMEDIR/.apktemp"
-    rm "$GAMEDIR/"*.apk
+    
     
     pm_message "Unpacking APK file... done"
 }
@@ -49,11 +48,10 @@ unpack_apk() {
 unpack_obb() {
     pm_message "Unpacking OBB file..." 
     mkdir -p "$GAMEDIR/gamedata"
-    unzip -o "$GAMEDIR/*.obb" -d "$GAMEDIR/.obbtemp"
+    unzip -o "$GAMEDIR/*.obb" -d "$GAMEDIR/.obbtemp" && rm "$GAMEDIR/"*.obb
     rsync -a "$GAMEDIR/.obbtemp/" "$GAMEDIR/gamedata/"
     rm -rf "$GAMEDIR/.obbtemp"
-    rm "$GAMEDIR/"*.obb
-
+    
     pm_message "Unpacking OBB file... done"
 }
 
@@ -89,6 +87,8 @@ if [ ! -d "$GAMEDIR/gamedata" ]; then
 fi
 
 cd $GAMEDIR
+
+export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 
 pm_message "Starting Max Payne... This can take a few seconds."
 
