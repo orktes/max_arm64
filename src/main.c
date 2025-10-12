@@ -110,7 +110,7 @@ int main(void) {
 
   // won't save without it
   // debugPrintf("Creating savegames directory...\n");
-  mkdir("savegames", 0777);
+  mkdir("gamedata/savegames", 0755);
 
   // debugPrintf("Updating imports...\n");
   update_imports();
