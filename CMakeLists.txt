@@ -48,6 +48,8 @@ set(SOURCES
     src/hooks/game.c
     src/hooks/openal.c
     src/hooks/opengl.c
+    src/wrappers/drm_wrapper.c
+    src/wrappers/gbm_wrapper.c
 )
 
 add_executable(${TARGET_NAME} ${SOURCES})
@@ -93,8 +95,6 @@ else()
         dl
         stdc++
         pthread
-        gbm
-        drm
     )
 endif()
 

@@ -27,11 +27,10 @@
 #include <X11/Xutil.h>
 #endif
 
-// Only include DRM/GBM for R36S device builds
+// Only include wrappers for R36S device builds
 #ifndef __X11_DESKTOP__
-#include <gbm.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
+#include "../wrappers/drm_wrapper.h"
+#include "../wrappers/gbm_wrapper.h"
 #endif
 
 #include "../config.h"
@@ -67,9 +66,9 @@ static int fb_page_offset = 0; // For double buffering
 
 // GBM/DRM variables for modern graphics
 static int drm_fd = -1;
-static struct gbm_device *gbm_device = NULL;
-static struct gbm_surface *gbm_surface = NULL;
-static struct gbm_bo *previous_bo = NULL;
+static gbm_device *gbm_dev = NULL;
+static gbm_surface *gbm_surf = NULL;
+static gbm_bo *previous_bo = NULL;
 static uint32_t previous_fb_id = 0;
 static drmModeRes *drm_resources = NULL;
 static drmModeCrtc *crtc = NULL;
@@ -172,6 +171,21 @@ static int init_drm_gbm(void)
 {
   debugPrintf("=== Initializing GBM+DRM Graphics ===\n");
 
+  // Initialize wrappers first
+  debugPrintf("DRM/GBM: Loading libraries dynamically...\n");
+  
+  int drm_available = drm_wrapper_init();
+  int gbm_available = gbm_wrapper_init();
+  
+  if (!drm_available || !gbm_available) {
+    debugPrintf("DRM/GBM: Libraries not available, falling back to FB0\n");
+    drm_wrapper_cleanup();
+    gbm_wrapper_cleanup();
+    return -1;
+  }
+  
+  debugPrintf("DRM/GBM: Successfully loaded libraries\n");
+
   // Try to disable console to take control of display
   int console_fd = open("/dev/tty0", O_RDWR);
   if (console_fd >= 0)
@@ -188,12 +202,14 @@ static int init_drm_gbm(void)
   if (drm_fd < 0)
   {
     debugPrintf("✗ Cannot open /dev/dri/card0: %s\n", strerror(errno));
+    drm_wrapper_cleanup();
+    gbm_wrapper_cleanup();
     return -1;
   }
   debugPrintf("✓ Opened DRM device\n");
 
   // Become DRM master to have exclusive control
-  if (drmSetMaster(drm_fd) != 0)
+  if (drm_funcs.drmSetMaster(drm_fd) != 0)
   {
     debugPrintf("⚠ Could not become DRM master: %s\n", strerror(errno));
     debugPrintf("  Another process might be controlling the display\n");
@@ -204,12 +220,14 @@ static int init_drm_gbm(void)
   }
 
   // Get DRM resources
-  drm_resources = drmModeGetResources(drm_fd);
+  drm_resources = drm_funcs.drmModeGetResources(drm_fd);
   if (!drm_resources)
   {
     debugPrintf("✗ Cannot get DRM resources\n");
     close(drm_fd);
     drm_fd = -1;
+    drm_wrapper_cleanup();
+    gbm_wrapper_cleanup();
     return -1;
   }
   debugPrintf("✓ Got DRM resources: %d connectors, %d crtcs\n",
@@ -218,7 +236,7 @@ static int init_drm_gbm(void)
   // Find connected display
   for (int i = 0; i < drm_resources->count_connectors; i++)
   {
-    connector = drmModeGetConnector(drm_fd, drm_resources->connectors[i]);
+    connector = drm_funcs.drmModeGetConnector(drm_fd, drm_resources->connectors[i]);
     if (connector && connector->connection == DRM_MODE_CONNECTED && connector->count_modes > 0)
     {
       int native_width = connector->modes[0].hdisplay;
@@ -234,7 +252,7 @@ static int init_drm_gbm(void)
     }
     if (connector)
     {
-      drmModeFreeConnector(connector);
+      drm_funcs.drmModeFreeConnector(connector);
       connector = NULL;
     }
   }
@@ -242,28 +260,32 @@ static int init_drm_gbm(void)
   if (!connector)
   {
     debugPrintf("✗ No connected display found\n");
-    drmModeFreeResources(drm_resources);
+    drm_funcs.drmModeFreeResources(drm_resources);
     drm_resources = NULL;
     close(drm_fd);
     drm_fd = -1;
+    drm_wrapper_cleanup();
+    gbm_wrapper_cleanup();
     return -1;
   }
 
   // Get CRTC
   if (drm_resources->count_crtcs > 0)
   {
-    crtc = drmModeGetCrtc(drm_fd, drm_resources->crtcs[0]);
+    crtc = drm_funcs.drmModeGetCrtc(drm_fd, drm_resources->crtcs[0]);
   }
 
   if (!crtc)
   {
     debugPrintf("✗ No CRTC available\n");
-    drmModeFreeConnector(connector);
+    drm_funcs.drmModeFreeConnector(connector);
     connector = NULL;
-    drmModeFreeResources(drm_resources);
+    drm_funcs.drmModeFreeResources(drm_resources);
     drm_resources = NULL;
     close(drm_fd);
     drm_fd = -1;
+    drm_wrapper_cleanup();
+    gbm_wrapper_cleanup();
     return -1;
   }
 
@@ -288,7 +310,7 @@ static int init_drm_gbm(void)
     debugPrintf("Setting display mode: %s %dx%d @%dHz\n",
                 best_mode->name, best_mode->hdisplay, best_mode->vdisplay, best_mode->vrefresh);
 
-    if (drmModeSetCrtc(drm_fd, crtc->crtc_id, 0, 0, 0,
+    if (drm_funcs.drmModeSetCrtc(drm_fd, crtc->crtc_id, 0, 0, 0,
                        &connector->connector_id, 1, best_mode) != 0)
     {
       debugPrintf("✗ Failed to set CRTC mode: %s\n", strerror(errno));
@@ -300,38 +322,42 @@ static int init_drm_gbm(void)
   }
 
   // Create GBM device
-  gbm_device = gbm_create_device(drm_fd);
-  if (!gbm_device)
+  gbm_dev = gbm_funcs.gbm_create_device(drm_fd);
+  if (!gbm_dev)
   {
     debugPrintf("✗ Cannot create GBM device\n");
-    drmModeFreeCrtc(crtc);
+    drm_funcs.drmModeFreeCrtc(crtc);
     crtc = NULL;
-    drmModeFreeConnector(connector);
+    drm_funcs.drmModeFreeConnector(connector);
     connector = NULL;
-    drmModeFreeResources(drm_resources);
+    drm_funcs.drmModeFreeResources(drm_resources);
     drm_resources = NULL;
     close(drm_fd);
     drm_fd = -1;
+    drm_wrapper_cleanup();
+    gbm_wrapper_cleanup();
     return -1;
   }
   debugPrintf("✓ Created GBM device\n");
 
   // Create GBM surface
-  gbm_surface = gbm_surface_create(gbm_device, display_width, display_height, GBM_FORMAT_XRGB8888,
+  gbm_surf = gbm_funcs.gbm_surface_create(gbm_dev, display_width, display_height, GBM_FORMAT_XRGB8888,
                                    GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
-  if (!gbm_surface)
+  if (!gbm_surf)
   {
     debugPrintf("✗ Cannot create GBM surface\n");
-    gbm_device_destroy(gbm_device);
-    gbm_device = NULL;
-    drmModeFreeCrtc(crtc);
+    gbm_funcs.gbm_device_destroy(gbm_dev);
+    gbm_dev = NULL;
+    drm_funcs.drmModeFreeCrtc(crtc);
     crtc = NULL;
-    drmModeFreeConnector(connector);
+    drm_funcs.drmModeFreeConnector(connector);
     connector = NULL;
-    drmModeFreeResources(drm_resources);
+    drm_funcs.drmModeFreeResources(drm_resources);
     drm_resources = NULL;
     close(drm_fd);
     drm_fd = -1;
+    drm_wrapper_cleanup();
+    gbm_wrapper_cleanup();
     return -1;
   }
   debugPrintf("✓ Created GBM surface\n");
@@ -524,12 +550,12 @@ int NVEventEGLInit(void)
     get_platform_display = (void *)eglGetProcAddress("eglGetPlatformDisplayEXT");
     if (get_platform_display)
     {
-      display = get_platform_display(EGL_PLATFORM_GBM_KHR, gbm_device, NULL);
+      display = get_platform_display(EGL_PLATFORM_GBM_KHR, gbm_dev, NULL);
       debugPrintf("✓ Got GBM platform EGL display\n");
     }
     else
     {
-      display = eglGetDisplay((EGLNativeDisplayType)gbm_device);
+      display = eglGetDisplay((EGLNativeDisplayType)gbm_dev);
     }
   }
   else if (display_mode == DISPLAY_MODE_FB0)
@@ -588,9 +614,9 @@ int NVEventEGLInit(void)
   debugPrintf("✓ Found EGL config\n");
 
   // Create EGL surface based on display mode
-  if (display_mode == DISPLAY_MODE_DRM_GBM && gbm_surface)
+  if (display_mode == DISPLAY_MODE_DRM_GBM && gbm_surf)
   {
-    surface = eglCreateWindowSurface(display, egl_config, (EGLNativeWindowType)gbm_surface, NULL);
+    surface = eglCreateWindowSurface(display, egl_config, (EGLNativeWindowType)gbm_surf, NULL);
     if (surface == EGL_NO_SURFACE)
     {
       debugPrintf("✗ Cannot create GBM window surface: 0x%x\n", eglGetError());
@@ -690,22 +716,22 @@ void NVEventEGLSwapBuffers(void)
     if (display_mode == DISPLAY_MODE_DRM_GBM)
     {
       // Handle GBM surface with DRM page flipping
-      if (gbm_surface && drm_fd >= 0 && crtc && connector)
+      if (gbm_surf && drm_fd >= 0 && crtc && connector)
       {
-        struct gbm_bo *bo = gbm_surface_lock_front_buffer(gbm_surface);
+        gbm_bo *bo = gbm_funcs.gbm_surface_lock_front_buffer(gbm_surf);
         if (bo)
         {
-          uint32_t handle = gbm_bo_get_handle(bo).u32;
-          uint32_t pitch = gbm_bo_get_stride(bo);
+          uint32_t handle = gbm_funcs.gbm_bo_get_handle(bo).u32;
+          uint32_t pitch = gbm_funcs.gbm_bo_get_stride(bo);
           uint32_t fb_id_local;
 
-          int add_fb_result = drmModeAddFB(drm_fd, display_width, display_height, 32, 32, pitch, handle, &fb_id_local);
+          int add_fb_result = drm_funcs.drmModeAddFB(drm_fd, display_width, display_height, 32, 32, pitch, handle, &fb_id_local);
           if (add_fb_result == 0)
           {
             static int first_frame = 1;
             if (first_frame)
             {
-              int set_result = drmModeSetCrtc(drm_fd, crtc->crtc_id, fb_id_local, 0, 0,
+              int set_result = drm_funcs.drmModeSetCrtc(drm_fd, crtc->crtc_id, fb_id_local, 0, 0,
                                               &connector->connector_id, 1, &connector->modes[0]);
               if (set_result == 0)
               {
@@ -715,7 +741,7 @@ void NVEventEGLSwapBuffers(void)
             }
             else
             {
-              int flip_result = drmModePageFlip(drm_fd, crtc->crtc_id, fb_id_local, DRM_MODE_PAGE_FLIP_EVENT, NULL);
+              int flip_result = drm_funcs.drmModePageFlip(drm_fd, crtc->crtc_id, fb_id_local, DRM_MODE_PAGE_FLIP_EVENT, NULL);
               if (flip_result != 0)
               {
                 static int page_flip_failures = 0;
@@ -723,12 +749,12 @@ void NVEventEGLSwapBuffers(void)
 
                 if (page_flip_failures < 10)
                 {
-                  flip_result = drmModePageFlip(drm_fd, crtc->crtc_id, fb_id_local, 0, NULL);
+                  flip_result = drm_funcs.drmModePageFlip(drm_fd, crtc->crtc_id, fb_id_local, 0, NULL);
                 }
 
                 if (flip_result != 0)
                 {
-                  drmModeSetCrtc(drm_fd, crtc->crtc_id, fb_id_local, 0, 0,
+                  drm_funcs.drmModeSetCrtc(drm_fd, crtc->crtc_id, fb_id_local, 0, 0,
                                  &connector->connector_id, 1, &connector->modes[0]);
                   if (page_flip_failures == 10)
                   {
@@ -740,11 +766,11 @@ void NVEventEGLSwapBuffers(void)
 
             if (previous_fb_id != 0)
             {
-              drmModeRmFB(drm_fd, previous_fb_id);
+              drm_funcs.drmModeRmFB(drm_fd, previous_fb_id);
             }
             if (previous_bo)
             {
-              gbm_surface_release_buffer(gbm_surface, previous_bo);
+              gbm_funcs.gbm_surface_release_buffer(gbm_surf, previous_bo);
             }
 
             previous_fb_id = fb_id_local;
@@ -752,7 +778,7 @@ void NVEventEGLSwapBuffers(void)
           }
           else
           {
-            gbm_surface_release_buffer(gbm_surface, bo);
+            gbm_funcs.gbm_surface_release_buffer(gbm_surf, bo);
           }
         }
       }
@@ -888,19 +914,19 @@ void deinit_opengl(void)
     // Clean up DRM/GBM resources
     if (previous_fb_id != 0 && drm_fd >= 0)
     {
-      drmModeRmFB(drm_fd, previous_fb_id);
+      drm_funcs.drmModeRmFB(drm_fd, previous_fb_id);
       previous_fb_id = 0;
     }
 
-    if (previous_bo && gbm_surface)
+    if (previous_bo && gbm_surf)
     {
-      gbm_surface_release_buffer(gbm_surface, previous_bo);
+      gbm_funcs.gbm_surface_release_buffer(gbm_surf, previous_bo);
       previous_bo = NULL;
     }
 
     if (drm_fd >= 0)
     {
-      drmDropMaster(drm_fd);
+      drm_funcs.drmDropMaster(drm_fd);
     }
   }
 
@@ -916,34 +942,34 @@ void deinit_opengl(void)
   }
 
   // Clean up GBM resources
-  if (gbm_surface)
+  if (gbm_surf)
   {
-    gbm_surface_destroy(gbm_surface);
-    gbm_surface = NULL;
+    gbm_funcs.gbm_surface_destroy(gbm_surf);
+    gbm_surf = NULL;
   }
 
-  if (gbm_device)
+  if (gbm_dev)
   {
-    gbm_device_destroy(gbm_device);
-    gbm_device = NULL;
+    gbm_funcs.gbm_device_destroy(gbm_dev);
+    gbm_dev = NULL;
   }
 
   // Clean up DRM resources
   if (connector)
   {
-    drmModeFreeConnector(connector);
+    drm_funcs.drmModeFreeConnector(connector);
     connector = NULL;
   }
 
   if (crtc)
   {
-    drmModeFreeCrtc(crtc);
+    drm_funcs.drmModeFreeCrtc(crtc);
     crtc = NULL;
   }
 
   if (drm_resources)
   {
-    drmModeFreeResources(drm_resources);
+    drm_funcs.drmModeFreeResources(drm_resources);
     drm_resources = NULL;
   }
 
@@ -952,6 +978,10 @@ void deinit_opengl(void)
     close(drm_fd);
     drm_fd = -1;
   }
+
+  // Clean up wrapper libraries
+  drm_wrapper_cleanup();
+  gbm_wrapper_cleanup();
 
   // Clean up FB0 resources
   if (fb_mem && fb_mem != MAP_FAILED)
