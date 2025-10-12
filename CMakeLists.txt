@@ -127,6 +127,7 @@ add_custom_target(package
     COMMAND ${CMAKE_COMMAND} -E copy "port/port.json" "package/maxpayne/port.json"
     COMMAND ${CMAKE_COMMAND} -E make_directory package/maxpayne/tools
     COMMAND ${CMAKE_COMMAND} -E copy "port/tools/patchscript" "package/maxpayne/tools/patchscript"
+    COMMAND git rev-parse HEAD > package/maxpayne/VERSION.txt
     DEPENDS build-in-docker
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Creating package from Docker build"
