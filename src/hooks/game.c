@@ -388,7 +388,7 @@ float WarGamepad_GetGamepadAxis(int padnum, int axis) {
   value = raw_value / 32767.0f;
 
   // Apply deadzone
-  if (fabs(value) > 0.15f)
+  if (fabs(value) > 0.05f)
     return value;
 
   return 0.0f;
