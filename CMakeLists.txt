@@ -124,7 +124,9 @@ add_custom_target(package
     COMMAND ${CMAKE_COMMAND} -E copy ${TARGET_NAME} package/maxpayne/
     COMMAND ${CMAKE_COMMAND} -E copy_directory patch package/maxpayne/patch
     COMMAND ${CMAKE_COMMAND} -E copy "port/Max Payne.sh" "package/Max Payne.sh"
-    COMMAND ${CMAKE_COMMAND} -E copy "port/port.json" "package/maxpayne/port.json" 
+    COMMAND ${CMAKE_COMMAND} -E copy "port/port.json" "package/maxpayne/port.json"
+    COMMAND ${CMAKE_COMMAND} -E make_directory package/maxpayne/tools
+    COMMAND ${CMAKE_COMMAND} -E copy "port/tools/patchscript" "package/maxpayne/tools/patchscript"
     DEPENDS build-in-docker
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Creating package from Docker build"

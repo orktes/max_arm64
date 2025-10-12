@@ -26,52 +26,24 @@ mkdir -p "$GAMEDIR/conf"
 
 > "$GAMEDIR/log.txt" && exec > >(tee "$GAMEDIR/log.txt") 2>&1
 
-unpack_apk() {
-    pm_message "Unpacking APK file..." 
-    # Unpack APK
+cd $GAMEDIR
 
-    mkdir -p "$GAMEDIR/.apktemp"
-    unzip -o "$GAMEDIR/*.apk" -d "$GAMEDIR/.apktemp"
-
-    # Move lib/arm64-v8a contents to GAMEDIR
-    rsync -a "$GAMEDIR/.apktemp/lib/arm64-v8a/" "$GAMEDIR/"
-
-    # Move assets
-    rsync -a "$GAMEDIR/.apktemp/assets/" "$GAMEDIR/gamedata/" && rm "$GAMEDIR/"*.apk
-
-    rm -rf "$GAMEDIR/.apktemp"
-    
-    
-    pm_message "Unpacking APK file... done"
-}
-
-unpack_obb() {
-    pm_message "Unpacking OBB file..." 
-    mkdir -p "$GAMEDIR/gamedata"
-    unzip -o "$GAMEDIR/*.obb" -d "$GAMEDIR/.obbtemp" && rm "$GAMEDIR/"*.obb
-    rsync -a "$GAMEDIR/.obbtemp/" "$GAMEDIR/gamedata/"
-    rm -rf "$GAMEDIR/.obbtemp"
-    
-    pm_message "Unpacking OBB file... done"
-}
-
-handle_patch_files() {
-    pm_message "Handling patch files..." 
-    if [ -d "$GAMEDIR/patch" ]; then
-        rsync -a "$GAMEDIR/patch/" "$GAMEDIR/gamedata/"
-    fi
-    pm_message "Handling patch files... done"
-}
+export PATCHER_FILE="$GAMEDIR/tools/patchscript"
+export PATCHER_TIME="10 to 20 minutes"
 
 apk_count=$(ls -1 "$GAMEDIR/"*.apk 2>/dev/null | wc -l)
-if [ "$apk_count" -gt 0 ]; then
-    unpack_apk
-fi
-
 obb_count=$(ls -1 "$GAMEDIR/"*.obb 2>/dev/null | wc -l)
-if [ "$obb_count" -gt 0 ]; then
-    unpack_obb
-    handle_patch_files
+
+if ! [ "$apk_count" -eq 0 ] || ! [ "$obb_count" -eq 0 ]; then
+  pm_message "APK or OBB file found. Running patchscript..."
+   if [ -f "$controlfolder/utils/patcher.txt" ]; then
+    $ESUDO chmod a+x "$GAMEDIR/tools/patchscript"
+    source "$controlfolder/utils/patcher.txt"
+    $ESUDO kill -9 $(pidof gptokeyb)
+  else
+    pm_message "This port requires the latest version of PortMaster."
+    exit 0
+  fi 
 fi
 
 if [ ! -f "$GAMEDIR/libMaxPayne.so" ]; then
@@ -86,7 +58,6 @@ if [ ! -d "$GAMEDIR/gamedata" ]; then
     exit 1
 fi
 
-cd $GAMEDIR
 
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 
