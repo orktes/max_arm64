@@ -6,34 +6,22 @@ LOGFILE="$GAMEDIR/patchlog.txt"
 exec > >(tee -a "$LOGFILE") 2>&1
 
 unpack_apk() {
-    pm_message "Unpacking APK file..." 
-    # Unpack APK
-
     mkdir -p "$GAMEDIR/.apktemp" &&
-    unzip -o "$GAMEDIR/*.apk" -d "$GAMEDIR/.apktemp" || pm_message "Warning: Failed to unpack APK file properly. Please check the log."
+    unzip -o "$GAMEDIR/*.apk" -d "$GAMEDIR/.apktemp"
 
     # Move lib/arm64-v8a contents to GAMEDIR
-    rsync -a "$GAMEDIR/.apktemp/lib/arm64-v8a/" "$GAMEDIR/" || pm_message "Warning: Failed to unpack APK file properly. Please check the log."
+    rsync -a "$GAMEDIR/.apktemp/lib/arm64-v8a/" "$GAMEDIR/"
  
     # Move assets
-    (rsync -a "$GAMEDIR/.apktemp/assets/" "$GAMEDIR/gamedata/" && rm "$GAMEDIR/"*.apk && rm -rf "$GAMEDIR/.apktemp") || pm_message "Warning: Failed to unpack APK file properly. Please check the log."
-    
-    pm_message "Unpacking APK file... done"
+    rsync -a "$GAMEDIR/.apktemp/assets/" "$GAMEDIR/gamedata/" && 
+        rm "$GAMEDIR/"*.apk && rm -rf "$GAMEDIR/.apktemp"
+
 }
 
 unpack_obb() {
-    pm_message "Unpacking OBB file..." 
     mkdir -p "$GAMEDIR/gamedata"
     unzip -o "$GAMEDIR/*.obb" -d "$GAMEDIR/.obbtemp"
-    (rsync -a "$GAMEDIR/.obbtemp/" "$GAMEDIR/gamedata/" && rm "$GAMEDIR/"*.obb && rm -rf "$GAMEDIR/.obbtemp")  || pm_message "Warning: Failed to unpack OBB file properly. Please check the log."
-    
-    pm_message "Unpacking OBB file... done"
-}
-
-handle_patch_files() {
-    pm_message "Handling patch files..." 
-    rsync -a "$GAMEDIR/patch/" "$GAMEDIR/gamedata/"
-    pm_message "Handling patch files... done"
+    rsync -a "$GAMEDIR/.obbtemp/" "$GAMEDIR/gamedata/" && rm "$GAMEDIR/"*.obb && rm -rf "$GAMEDIR/.obbtemp"
 }
 
 apk_count=$(ls -1 "$GAMEDIR/"*.apk 2>/dev/null | wc -l)
@@ -45,5 +33,3 @@ obb_count=$(ls -1 "$GAMEDIR/"*.obb 2>/dev/null | wc -l)
 if [ "$obb_count" -gt 0 ]; then
     unpack_obb
 fi
-
-handle_patch_files
