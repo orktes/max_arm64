@@ -6,14 +6,14 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
+#include <fcntl.h>
+#include <linux/fb.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <linux/fb.h>
 
 #include "config.h"
 #include "error.h"
@@ -76,29 +76,30 @@ static void check_syscalls(void) {
   // No specific syscalls needed for generic ARM64 Linux
 }
 
-
 static void check_for_4x3(void) {
   // get screen width and height from framebuffer
-    int fb_fd = open("/dev/fb0", O_RDONLY);
-    if (fb_fd >= 0) {
-      struct fb_var_screeninfo vinfo;
-      if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo) == 0) {
-        int screen_width = vinfo.xres;
-        int screen_height = vinfo.yres;
-        debugPrintf("Framebuffer resolution: %dx%d\n", screen_width, screen_height);
-        
-        float aspect_ratio = (float)screen_width / (float)screen_height;
-        // check if height is approximately 3/4 of width (4:3 aspect ratio)
-        if (aspect_ratio < 1.5f) {
-          *Use4x3 = 1;  // Enable 4:3 aspect ratio
-        } else {
-          debugPrintf("Aspect ratio is not 4:3 (or close), keeping widescreen mode\n");
-        }
+  int fb_fd = open("/dev/fb0", O_RDONLY);
+  if (fb_fd >= 0) {
+    struct fb_var_screeninfo vinfo;
+    if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo) == 0) {
+      int screen_width = vinfo.xres;
+      int screen_height = vinfo.yres;
+      debugPrintf("Framebuffer resolution: %dx%d\n", screen_width,
+                  screen_height);
+
+      float aspect_ratio = (float)screen_width / (float)screen_height;
+      // check if height is approximately 3/4 of width (4:3 aspect ratio)
+      if (aspect_ratio < 1.4f) {
+        *Use4x3 = 1; // Enable 4:3 aspect ratio
       } else {
-        debugPrintf("Failed to get variable screen info from framebuffer\n");
+        debugPrintf(
+            "Aspect ratio is not 4:3 (or close), keeping widescreen mode\n");
       }
-      close(fb_fd);
+    } else {
+      debugPrintf("Failed to get variable screen info from framebuffer\n");
     }
+    close(fb_fd);
+  }
 }
 
 int main(void) {
