@@ -138,15 +138,7 @@ static int init_fb0(void) {
   }
   debugPrintf("✓ Mapped framebuffer memory (%zu bytes)\n", fb_size);
 
-  // Try to switch console to graphics mode
-  int console_fd = open("/dev/tty0", O_RDWR);
-  if (console_fd >= 0) {
-    if (ioctl(console_fd, KDSETMODE, KD_GRAPHICS) == 0) {
-      debugPrintf("✓ Switched console to graphics mode\n");
-    }
-    close(console_fd);
-  }
-
+  
   // Update global screen size variables
   extern int screen_width, screen_height;
   screen_width = display_width;
@@ -175,16 +167,6 @@ static int init_drm_gbm(void) {
   }
 
   debugPrintf("DRM/GBM: Successfully loaded libraries\n");
-
-  // Try to disable console to take control of display
-  int console_fd = open("/dev/tty0", O_RDWR);
-  if (console_fd >= 0) {
-    if (ioctl(console_fd, KDSETMODE, KD_GRAPHICS) == 0) {
-      debugPrintf("✓ Switched console to graphics mode\n");
-    }
-    close(console_fd);
-  }
-
   // Open DRM device
   drm_fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
   if (drm_fd < 0) {
@@ -644,6 +626,11 @@ int NVEventEGLInit(void) {
 }
 
 void NVEventEGLSwapBuffers(void) {
+  static int swap_debug_logged = 0;
+  if (swap_debug_logged == 0) {
+    debugPrintf("NVEventEGLSwapBuffers called for the first time\n");
+  }
+
   if (display != (EGLDisplay)0x1 && surface != (EGLSurface)0x1) {
     // Always do EGL swap buffers first
     eglSwapBuffers(display, surface);
@@ -715,12 +702,18 @@ void NVEventEGLSwapBuffers(void) {
         // Read the rendered frame from EGL
         static unsigned char *pixel_buffer = NULL;
         if (!pixel_buffer) {
+          debugPrintf("Allocating pixel buffer for FB0 mode (%dx%d)\n",
+                      display_width, display_height);
+
           pixel_buffer =
               (unsigned char *)malloc(display_width * display_height * 4);
         }
 
         if (pixel_buffer) {
           // Read pixels from OpenGL
+          if (swap_debug_logged == 0)
+            debugPrintf("1st glReadPixels\n");
+
           glReadPixels(0, 0, display_width, display_height, GL_RGBA,
                        GL_UNSIGNED_BYTE, pixel_buffer);
 
@@ -769,6 +762,8 @@ void NVEventEGLSwapBuffers(void) {
           // Flip to the page we just wrote if double buffering is available
           if (fb_var.yres_virtual >= fb_var.yres * 2) {
             fb_var.yoffset = fb_page_offset * display_height;
+            if (swap_debug_logged == 0)
+              debugPrintf("1st FBIOPAN_DISPLAY\n");
             if (ioctl(fb_fd, FBIOPAN_DISPLAY, &fb_var) == 0) {
               // Switch to other buffer for next frame
               fb_page_offset = 1 - fb_page_offset;
@@ -778,6 +773,11 @@ void NVEventEGLSwapBuffers(void) {
       }
     }
 #endif // __X11_DESKTOP__
+  }
+
+  if (swap_debug_logged == 0) {
+    debugPrintf("NVEventEGLSwapBuffers: First swap completed\n");
+    swap_debug_logged = 1;
   }
 }
 
@@ -831,15 +831,6 @@ void deinit_opengl(void) {
   }
   debugPrintf("✓ X11/EGL cleaned up\n");
 #else
-  debugPrintf("Restoring console mode...\n");
-  // Restore console mode
-  int console_fd = open("/dev/tty0", O_RDWR);
-  if (console_fd >= 0) {
-    ioctl(console_fd, KDSETMODE, KD_TEXT);
-    close(console_fd);
-    debugPrintf("✓ Console mode restored\n");
-  }
-
   debugPrintf("Display mode: %d\n", display_mode);
 
   // Clean up based on display mode

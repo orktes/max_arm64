@@ -208,6 +208,7 @@ int main(void) {
   debugPrintf("Calling NVEventAppMain(0, NULL)...\n");
   NVEventAppMain(0, NULL);
   debugPrintf("NVEventAppMain() completed\n");
+  exit_game(0);
 
   return 0;
 }
