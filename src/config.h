@@ -36,6 +36,7 @@ typedef struct {
   float decal_limit;
   float debris_limit;
   char mod_file[0x100];
+  int force_widescreen; // 0=disabled, 1=enabled
 } Config;
 
 extern Config config;

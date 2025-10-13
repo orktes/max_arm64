@@ -26,7 +26,8 @@
   CONFIG_VAR_INT(vsync_enabled);                                               \
   CONFIG_VAR_FLOAT(decal_limit);                                               \
   CONFIG_VAR_FLOAT(debris_limit);                                              \
-  CONFIG_VAR_STR(mod_file);
+  CONFIG_VAR_STR(mod_file);                                                    \
+  CONFIG_VAR_INT(force_widescreen);
 
 Config config;
 
@@ -72,6 +73,7 @@ int read_config(const char *file) {
   config.vsync_enabled = 1; // Enable VSync by default to prevent screen tearing
   config.decal_limit = 0.5f;
   config.debris_limit = 1.0f;
+  config.force_widescreen = 0; // disabled by default
 
   FILE *f = fopen(file, "r");
   if (f == NULL)

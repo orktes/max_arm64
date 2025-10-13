@@ -145,7 +145,11 @@ int main(void) {
   strcpy((char *)so_find_addr("StorageRootBuffer"), "gamedata/");
   *(uint8_t *)so_find_addr("IsAndroidPaused") = 0;
   *(uint8_t *)so_find_addr("UseRGBA8") = 1; // RGB565 FBOs suck
-  *(uint8_t *)so_find_addr("Use4x3") = 1;  // Enable 4:3 aspect ratio
+
+  if (!config.force_widescreen) {
+      *(uint8_t *)so_find_addr("Use4x3") = 1;  // Enable 4:3 aspect ratio
+  }
+  
 
   debugPrintf("Finding game functions...\n");
   uint32_t (*initGraphics)(void) = (void *)so_find_addr_rx("_Z12initGraphicsv");
