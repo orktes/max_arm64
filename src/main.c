@@ -24,7 +24,6 @@
 
 static void *heap_so_base = NULL;
 static size_t heap_so_limit = 0;
-static uint8_t *Use4x3 = 0; // mirror of the game's Use4x3 variable
 
 // Initialize heap for ARM64 Linux
 static void init_heap(void) {
@@ -90,7 +89,7 @@ static void check_for_4x3(void) {
       float aspect_ratio = (float)screen_width / (float)screen_height;
       // check if height is approximately 3/4 of width (4:3 aspect ratio)
       if (aspect_ratio < 1.4f) {
-        *Use4x3 = 1; // Enable 4:3 aspect ratio
+        *(uint8_t *)so_find_addr("Use4x3") = 1; // Enable 4:3 aspect ratio
       } else {
         debugPrintf(
             "Aspect ratio is not 4:3 (or close), keeping widescreen mode\n");
@@ -174,7 +173,6 @@ int main(void) {
   strcpy((char *)so_find_addr("StorageRootBuffer"), "gamedata/");
   *(uint8_t *)so_find_addr("IsAndroidPaused") = 0;
   *(uint8_t *)so_find_addr("UseRGBA8") = 1; // RGB565 FBOs suck
-  Use4x3 = (uint8_t *)so_find_addr("Use4x3");
 
   if (!config.force_widescreen) {
     check_for_4x3();
