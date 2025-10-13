@@ -24,32 +24,6 @@
 #include "../so_util.h"
 #include "../util.h"
 
-// Signal handler for debugging crashes
-static void crash_handler(int sig) {
-  debugPrintf("=== CRASH DETECTED ===\n");
-  debugPrintf("Signal: %d (%s)\n", sig,
-              sig == SIGSEGV   ? "SIGSEGV"
-              : sig == SIGABRT ? "SIGABRT"
-              : sig == SIGFPE  ? "SIGFPE"
-                               : "UNKNOWN");
-  debugPrintf("This usually indicates memory corruption or accessing "
-              "freed/invalid memory\n");
-  debugPrintf(
-      "Check the log above this point for the last successful operation\n");
-  debugPrintf("=== END CRASH INFO ===\n");
-
-  // Don't try to cleanup, just exit immediately
-  _exit(128 + sig);
-}
-
-// Install crash handler
-static void install_crash_handler(void) {
-  signal(SIGSEGV, crash_handler);
-  signal(SIGABRT, crash_handler);
-  signal(SIGFPE, crash_handler);
-  debugPrintf("Crash handler installed\n");
-}
-
 #define APK_PATH "main.obb"
 
 #define GAMEDATA_DIR "gamedata/"
@@ -85,6 +59,9 @@ static int gamecontroller_initialized = 0;
 static SDL_GameController *gamecontroller = NULL;
 
 static int r1_pressed = 0;
+
+// this is used to inform the game that it should exit
+static int should_stop_game = 0;
 
 // Initialize SDL2 GameController for gamepad support
 static void init_gamecontroller(void) {
@@ -150,7 +127,7 @@ int NvAPKOpen(const char *path) {
 }
 
 int ProcessEvents(void) {
-  return 0; // 1 is exit!
+  return should_stop_game; // 1 is exit!
 }
 
 int AND_DeviceType(void) {
@@ -203,8 +180,8 @@ char *OS_FileGetArchiveName(int mode) {
   return out;
 }
 
-void ExitAndroidGame(int code) {
-  debugPrintf("=== ExitAndroidGame called with code=%d ===\n", code);
+void exit_game(int code) {
+  debugPrintf("=== exit_game called with code=%d ===\n", code);
 
   // Cleanup SDL2 GameController
   debugPrintf("Cleaning up SDL2 GameController...\n");
@@ -240,6 +217,11 @@ void ExitAndroidGame(int code) {
   // Use _exit instead of exit to avoid calling atexit handlers
   // which might reference unmapped memory
   _exit(code);
+}
+
+void ExitAndroidGame(int code) { 
+  debugPrintf("ExitAndroidGame called with code %d\n", code);
+  should_stop_game = 1;  
 }
 
 // this is supposed to allocate and return a thread handle struct, but the game
@@ -526,6 +508,44 @@ void *NVThreadGetCurrentJNIEnv(void) {
   }
 
   return &fake_tls[0];
+}
+
+// Signal handler for debugging crashes
+static void crash_handler(int sig) {
+  debugPrintf("=== CRASH DETECTED ===\n");
+  debugPrintf("Signal: %d (%s)\n", sig,
+              sig == SIGSEGV   ? "SIGSEGV"
+              : sig == SIGABRT ? "SIGABRT"
+              : sig == SIGFPE  ? "SIGFPE"
+                               : "UNKNOWN");
+  debugPrintf("This usually indicates memory corruption or accessing "
+              "freed/invalid memory\n");
+  debugPrintf(
+      "Check the log above this point for the last successful operation\n");
+  debugPrintf("=== END CRASH INFO ===\n");
+
+  // Don't try to cleanup, just exit immediately
+  _exit(128 + sig);
+}
+
+static void signal_handler(int sig) {
+  debugPrintf("=== SIGNAL RECEIVED ===\n");
+  debugPrintf("Signal: %d (%s)\n", sig,
+              sig == SIGINT    ? "SIGINT"
+              : sig == SIGTERM ? "SIGTERM"
+                               : "UNKNOWN");
+  debugPrintf("Exiting gracefully...\n");
+  should_stop_game = 1;
+}
+
+// Install crash handler
+static void install_crash_handler(void) {
+  signal(SIGSEGV, crash_handler);
+  signal(SIGABRT, crash_handler);
+  signal(SIGFPE, crash_handler);
+  signal(SIGINT, signal_handler);
+  signal(SIGTERM, signal_handler);
+  debugPrintf("Crash handler installed\n");
 }
 
 void patch_game(void) {
