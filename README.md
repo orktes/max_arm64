@@ -38,7 +38,7 @@ Port of Max Payne for the R36S game console.
 ![Menu_bg_Controls](https://github.com/user-attachments/assets/a818d8d9-3787-4108-b043-a3a3db2c7eb5)
 
 ## Known Issues
-- Aspect ration is a bit off for R36S's screen. This is due to Max Payne Mobile being optimised for widescreen devices. I'm trying to hack around the problem.
+- On non 4:3 or widescreen devices (devices like R36S Max) the game screen is offset to the bottom of the screen. This is a temp hack to get 4:3 mode out of the door. Enabling `force_widescreen` in config.txt will center the viewport but will make the view 16:9. 
 - Changing shooting from R1 to anything else will cause shooting to not work. This is due to a small hack in the input system to make R1 work as shoot button. Changing other buttons is however possible. 
 
 ## Building

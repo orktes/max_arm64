@@ -11,6 +11,9 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/fb.h>
 
 #include "config.h"
 #include "error.h"
@@ -21,6 +24,7 @@
 
 static void *heap_so_base = NULL;
 static size_t heap_so_limit = 0;
+static uint8_t *Use4x3 = 0; // mirror of the game's Use4x3 variable
 
 // Initialize heap for ARM64 Linux
 static void init_heap(void) {
@@ -70,7 +74,31 @@ static void check_data(void) {
 
 static void check_syscalls(void) {
   // No specific syscalls needed for generic ARM64 Linux
-  // Memory mapping is handled by standard Linux syscalls
+}
+
+
+static void check_for_4x3(void) {
+  // get screen width and height from framebuffer
+    int fb_fd = open("/dev/fb0", O_RDONLY);
+    if (fb_fd >= 0) {
+      struct fb_var_screeninfo vinfo;
+      if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo) == 0) {
+        int screen_width = vinfo.xres;
+        int screen_height = vinfo.yres;
+        debugPrintf("Framebuffer resolution: %dx%d\n", screen_width, screen_height);
+        
+        float aspect_ratio = (float)screen_width / (float)screen_height;
+        // check if height is approximately 3/4 of width (4:3 aspect ratio)
+        if (aspect_ratio < 1.5f) {
+          *Use4x3 = 1;  // Enable 4:3 aspect ratio
+        } else {
+          debugPrintf("Aspect ratio is not 4:3 (or close), keeping widescreen mode\n");
+        }
+      } else {
+        debugPrintf("Failed to get variable screen info from framebuffer\n");
+      }
+      close(fb_fd);
+    }
 }
 
 int main(void) {
@@ -145,11 +173,11 @@ int main(void) {
   strcpy((char *)so_find_addr("StorageRootBuffer"), "gamedata/");
   *(uint8_t *)so_find_addr("IsAndroidPaused") = 0;
   *(uint8_t *)so_find_addr("UseRGBA8") = 1; // RGB565 FBOs suck
+  Use4x3 = (uint8_t *)so_find_addr("Use4x3");
 
   if (!config.force_widescreen) {
-      *(uint8_t *)so_find_addr("Use4x3") = 1;  // Enable 4:3 aspect ratio
+    check_for_4x3();
   }
-  
 
   debugPrintf("Finding game functions...\n");
   uint32_t (*initGraphics)(void) = (void *)so_find_addr_rx("_Z12initGraphicsv");

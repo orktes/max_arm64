@@ -185,8 +185,17 @@ int AND_SystemInitialize(void) {
   return 0;
 }
 
+// Cache pointers to game variables to avoid repeated so_find_addr calls
+static uint8_t *use4x3_ptr = NULL;
+
 int OS_ScreenGetHeight(void) {
   // debugPrintf("OS_ScreenGetHeight: returning %d\n", screen_height);
+
+  // temp hack to get the 4:3 mode out of the door. this will cause the screen to be offset to the bottom
+  if (use4x3_ptr && *use4x3_ptr == 1) {
+    screen_height = screen_width * 3 / 4;
+  }
+
   return screen_height;
 }
 
@@ -659,4 +668,7 @@ void patch_game(void) {
   deviceChip = (int *)so_find_addr_rx("deviceChip");
   deviceForm = (int *)so_find_addr_rx("deviceForm");
   definedDevice = (int *)so_find_addr_rx("definedDevice");
+  
+  // Cache game variable pointers for performance
+  use4x3_ptr = (uint8_t *)so_find_addr("Use4x3");
 }
