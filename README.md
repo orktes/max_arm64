@@ -2,7 +2,7 @@
 
 Port of Max Payne for the R36S game console.
 
-![Devices](https://github.com/user-attachments/assets/541a65db-31b9-483f-a5dd-63b76a830da8)
+![IMG_0428](https://github.com/user-attachments/assets/378e8728-e32b-4e5e-8534-9977b15b27e9)
 
 
 ## Installing
