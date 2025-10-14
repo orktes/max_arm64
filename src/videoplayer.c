@@ -99,9 +99,7 @@ int videoplayer_is_available(void) {
     return check_ffmpeg_availability();
 }
 
-int videoplayer_play(const char *filename, uint8_t arg1, uint8_t arg2, float arg3) {
-    (void)arg1; (void)arg2; (void)arg3; // Unused parameters
-    
+int videoplayer_play(const char *filename) {
     if (!videoplayer_initialized) {
         debugPrintf("videoplayer: Not initialized\n");
         return -1;

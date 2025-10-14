@@ -527,7 +527,7 @@ static void OS_MoviePlay(const char* filename, uint8_t arg1, uint8_t arg2, float
   debugPrintf("OS_MoviePlay: Trying to play movie %s\n",
               filename ? filename : "NULL");
   
-  if (videoplayer_play(filename, arg1, arg2, arg3) != 0) {
+  if (videoplayer_play(filename) != 0) {
     debugPrintf("OS_MoviePlay: Failed to start video playback\n");
   }
 }

@@ -14,7 +14,7 @@
 int videoplayer_init(void);
 void videoplayer_cleanup(void);
 int videoplayer_is_available(void);
-int videoplayer_play(const char *filename, uint8_t arg1, uint8_t arg2, float arg3);
+int videoplayer_play(const char *filename);
 void videoplayer_stop(void);
 int videoplayer_is_playing(void);
 void videoplayer_set_overlay(const char *text);
