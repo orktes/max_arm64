@@ -101,8 +101,6 @@ static void check_for_4x3(void) {
         *(uint8_t *)so_find_addr("WideScreenRenderHack") = 0;
         *(uint8_t *)so_find_addr("IsWideScreen") = 0;
         *(uint8_t *)so_find_addr("AdjustAspectRatio") = 0;
-        *(float *)so_find_addr("AspectRatioXMult") = 1.0f;
-        *(float *)so_find_addr("AspectRatioYMult") = 1.0f;
       } else {
         debugPrintf(
             "Aspect ratio is not 4:3 (or close), keeping widescreen mode\n");
