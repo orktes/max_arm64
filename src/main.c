@@ -1,6 +1,7 @@
 /* main.c
  *
- * Copyright (C) 2021 fgsfds, Andy Nguyen
+ * Copyright (C) 2021 fgsfds, Andy Nguyen (Switch port)
+ * Copyright (C) 2025 Jaakko Lukkari
  *
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
@@ -17,6 +18,7 @@
 
 #include "config.h"
 #include "error.h"
+#include "gamedata_mapping.h"
 #include "hooks.h"
 #include "imports.h"
 #include "so_util.h"
@@ -119,6 +121,11 @@ int main(void) {
   debugPrintf("Checking data files...\n");
   check_data();
 
+  debugPrintf("Creating gamedata mapping...\n");
+  if (gamedata_mapping_init() < 0) {
+    fatal_error("Failed to initialize gamedata mapping");
+  }
+
   // debugPrintf("heap size = %u KB\n", MEMORY_MB * 1024);
   // debugPrintf(" lib base = %p\n", heap_so_base);
   // debugPrintf("  lib max = %u KB\n", heap_so_limit / 1024);
@@ -170,7 +177,7 @@ int main(void) {
   stderr_fake = stderr;
 
   debugPrintf("Setting up game variables...\n");
-  strcpy((char *)so_find_addr("StorageRootBuffer"), "gamedata/");
+  strcpy((char *)so_find_addr("StorageRootBuffer"), "gamedata");
   *(uint8_t *)so_find_addr("IsAndroidPaused") = 0;
   *(uint8_t *)so_find_addr("UseRGBA8") = 1; // RGB565 FBOs suck
 
@@ -208,6 +215,10 @@ int main(void) {
   debugPrintf("Calling NVEventAppMain(0, NULL)...\n");
   NVEventAppMain(0, NULL);
   debugPrintf("NVEventAppMain() completed\n");
+
+  debugPrintf("Cleaning up gamedata mapping...\n");
+  gamedata_mapping_cleanup();
+
   exit_game(0);
 
   return 0;
