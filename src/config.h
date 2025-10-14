@@ -37,6 +37,7 @@ typedef struct {
   float debris_limit;
   char mod_file[0x100];
   int force_widescreen; // 0=disabled, 1=enabled
+  float stick_deadzone; // deadzone for analog sticks (0.0 - 1.0)
 } Config;
 
 extern Config config;
