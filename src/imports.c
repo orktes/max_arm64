@@ -30,6 +30,7 @@
 #include <wctype.h>
 
 #include "config.h"
+#include "gamedata_mapping.h"
 #include "so_util.h"
 #include "util.h"
 
@@ -251,6 +252,18 @@ void glTexParameteriHook(GLenum target, GLenum param, GLint val) {
   glTexParameteri(target, param, val);
 }
 
+// File I/O wrappers with debug logging
+FILE *fopen_wrapper(const char *filename, const char *mode) {
+
+  // in order to support case sensitivity on case insensitive filesystems,
+  // we need to map filenames game requests to their actual paths on the disk
+  const char *mapped = gamedata_mapping_get(filename);
+  if (mapped) {
+    filename = mapped;
+  }
+  return fopen(filename, mode);
+}
+
 // import table
 
 DynLibFunction dynlib_functions[] = {
@@ -361,7 +374,7 @@ DynLibFunction dynlib_functions[] = {
     {"abort", (uintptr_t)&abort},
     {"exit", (uintptr_t)&exit},
 
-    {"fopen", (uintptr_t)&fopen},
+    {"fopen", (uintptr_t)&fopen_wrapper},
     {"fclose", (uintptr_t)&fclose},
     {"fdopen", (uintptr_t)&fdopen},
     {"fflush", (uintptr_t)&fflush},
