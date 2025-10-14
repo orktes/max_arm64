@@ -7,10 +7,10 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
+#include <ctype.h>
 #include <fcntl.h>
 #include <linux/fb.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -67,6 +67,9 @@ static void check_data(void) {
   // check if all the required files are present
   for (unsigned int i = 0; i < numfiles; ++i) {
     const char *file = gamedata_mapping_get(files[i]);
+    if (!file) {
+      file = files[i];
+    }
     if (stat(file, &st) < 0) {
       fatal_error("Could not find\n%s.\nCheck your data files.", file);
       break;
@@ -104,6 +107,24 @@ static void check_for_4x3(void) {
   }
 }
 
+int static check_filesystem_case_sensitive(void) {
+  // check with a file we know that exists
+
+  char *path = strdup(CONFIG_NAME);
+  for (char *p = path; *p; ++p) {
+    *p = tolower((unsigned char)*p);
+  }
+
+  struct stat st;
+  if (stat(path, &st) < 0) {
+    free(path);
+    return 1;
+  }
+
+  free(path);
+  return 0;
+}
+
 int main(void) {
   debugPrintf("Max Payne for ARM64 Linux\n");
 
@@ -122,9 +143,16 @@ int main(void) {
   debugPrintf("Checking data files...\n");
   check_data();
 
-  debugPrintf("Creating gamedata mapping...\n");
-  if (gamedata_mapping_init() < 0) {
-    fatal_error("Failed to initialize gamedata mapping");
+  if (check_filesystem_case_sensitive()) {
+    debugPrintf("Case sensitive filesystem detected! Creating a lookup map "
+                "for filepaths.\n");
+
+    if (gamedata_mapping_init() < 0) {
+      fatal_error("Failed to initialize gamedata mapping");
+    }
+  } else {
+    debugPrintf("Case insensitive filesystem detected, no need for gamedata "
+                "mapping.\n");
   }
 
   // debugPrintf("heap size = %u KB\n", MEMORY_MB * 1024);
