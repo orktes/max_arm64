@@ -317,12 +317,11 @@ uint32_t WarGamepad_GetGamepadButtons(int padnum) {
   }
 
   SDL_Event e;
-  if (SDL_PollEvent(&e) != 0) {
+  while (SDL_PollEvent(&e) != 0) {
     if (e.type == SDL_QUIT) {
       should_stop_game = 1;
     }
   }
-
 
   if (!gamecontroller) {
     return 0;
@@ -380,10 +379,11 @@ uint32_t WarGamepad_GetGamepadButtons(int padnum) {
     mask |= BTN_DPAD_RIGHT;
 
   // if BTN_A, BTN_B, or BTN_START is pressed, stop video playback
-  if (videoplayer_is_playing() && video_skippable && (mask & (BTN_A | BTN_B | BTN_START))) {
+  if (videoplayer_is_playing() && video_skippable &&
+      (mask & (BTN_A | BTN_B | BTN_START))) {
     videoplayer_stop();
   }
-  
+
   return mask;
 }
 
@@ -428,12 +428,12 @@ float WarGamepad_GetGamepadAxis(int padnum, int axis) {
   // Convert from Sint16 (-32768 to 32767) to float (-1.0 to 1.0)
   value = raw_value / 32767.0f;
 
-  // Apply deadzone
-  if (fabs(value) > config.stick_deadzone) {
-    return value;
-  }
-
-  return 0.0f;
+  if (fabs(value) < config.stick_deadzone)
+    return 0.0f;
+  // optional rescale
+  float sign = value > 0 ? 1.0f : -1.0f;
+  return sign * (fabs(value) - config.stick_deadzone) /
+         (1.0f - config.stick_deadzone);
 }
 
 int MaxPayne_ConfiguredInput_readCrouch(void *this) {
@@ -517,10 +517,11 @@ void *NVThreadGetCurrentJNIEnv(void) {
   return &fake_tls[0];
 }
 
-static void OS_MoviePlay(const char* filename, uint8_t arg1, uint8_t arg2, float arg3) {
+static void OS_MoviePlay(const char *filename, uint8_t arg1, uint8_t arg2,
+                         float arg3) {
   debugPrintf("OS_MoviePlay: Trying to play movie %s\n",
               filename ? filename : "NULL");
-  
+
   if (videoplayer_play(filename) != 0) {
     debugPrintf("OS_MoviePlay: Failed to start video playback\n");
   }
@@ -625,9 +626,11 @@ void patch_game(void) {
   // Movie playback using videoplayer module
   hook_arm64(so_find_addr("_Z12OS_MoviePlayPKcbbf"), (uintptr_t)OS_MoviePlay);
   hook_arm64(so_find_addr("_Z12OS_MovieStopv"), (uintptr_t)OS_MovieStop);
-  hook_arm64(so_find_addr("_Z20OS_MovieSetSkippableb"), (uintptr_t)OS_MovieSetSkippable);
+  hook_arm64(so_find_addr("_Z20OS_MovieSetSkippableb"),
+             (uintptr_t)OS_MovieSetSkippable);
   hook_arm64(so_find_addr("_Z17OS_MovieTextScalei"), (uintptr_t)ret0);
-  hook_arm64(so_find_addr("_Z17OS_MovieIsPlayingPi"), (uintptr_t)OS_MovieIsPlaying);
+  hook_arm64(so_find_addr("_Z17OS_MovieIsPlayingPi"),
+             (uintptr_t)OS_MovieIsPlaying);
   hook_arm64(so_find_addr("_Z20OS_MoviePlayinWindowPKciiiibbf"),
              (uintptr_t)ret0);
 
