@@ -23,6 +23,7 @@
 #include "../hooks.h"
 #include "../so_util.h"
 #include "../util.h"
+#include "../videoplayer.h"
 
 #define APK_PATH "main.obb"
 
@@ -59,6 +60,8 @@ static int gamecontroller_initialized = 0;
 static SDL_GameController *gamecontroller = NULL;
 
 static int r1_pressed = 0;
+
+static int video_skippable = 0;
 
 // this is used to inform the game that it should exit
 static int should_stop_game = 0;
@@ -182,6 +185,11 @@ char *OS_FileGetArchiveName(int mode) {
 
 void exit_game(int code) {
   debugPrintf("=== exit_game called with code=%d ===\n", code);
+
+  // Cleanup video player
+  debugPrintf("Cleaning up video player...\n");
+  videoplayer_cleanup();
+  debugPrintf("✓ video player cleanup completed\n");
 
   // Cleanup SDL2 GameController
   debugPrintf("Cleaning up SDL2 GameController...\n");
@@ -376,6 +384,11 @@ uint32_t WarGamepad_GetGamepadButtons(int padnum) {
                                   SDL_CONTROLLER_BUTTON_DPAD_RIGHT))
     mask |= BTN_DPAD_RIGHT;
 
+  // if BTN_A, BTN_B, or BTN_START is pressed, stop video playback
+  if (videoplayer_is_playing() && video_skippable && (mask & (BTN_A | BTN_B | BTN_START))) {
+    videoplayer_stop();
+  }
+  
   return mask;
 }
 
@@ -510,6 +523,39 @@ void *NVThreadGetCurrentJNIEnv(void) {
   return &fake_tls[0];
 }
 
+static void OS_MoviePlay(const char* filename, uint8_t arg1, uint8_t arg2, float arg3) {
+  debugPrintf("OS_MoviePlay: Trying to play movie %s\n",
+              filename ? filename : "NULL");
+  
+  if (videoplayer_play(filename) != 0) {
+    debugPrintf("OS_MoviePlay: Failed to start video playback\n");
+  }
+}
+
+static void OS_MovieStop(void) {
+  debugPrintf("OS_MovieStop: Stopping movie playback\n");
+  videoplayer_stop();
+}
+
+static int OS_MovieIsPlaying(void) {
+  int playing = videoplayer_is_playing();
+  return playing;
+}
+
+static void OS_MovieSetSkippable(uint8_t skippable) {
+  if (video_skippable == skippable) {
+    return; // No change
+  }
+
+  video_skippable = skippable;
+
+  if (skippable) {
+    videoplayer_set_overlay("Press START to skip");
+  } else {
+    videoplayer_set_overlay("");
+  }
+}
+
 // Signal handler for debugging crashes
 static void crash_handler(int sig) {
   debugPrintf("=== CRASH DETECTED ===\n");
@@ -552,6 +598,9 @@ void patch_game(void) {
   // Install crash handler early for debugging
   install_crash_handler();
 
+  // Initialize video player
+  videoplayer_init();
+
   // No platform-specific input initialization needed for ARM64 Linux
   debugPrintf("patch_game: Starting game patching\n");
 
@@ -579,12 +628,12 @@ void patch_game(void) {
   // don't bother opening links
   hook_arm64(so_find_addr("_Z18OS_ServiceOpenLinkPKc"), (uintptr_t)ret0);
 
-  // don't have movie playback yet
-  hook_arm64(so_find_addr("_Z12OS_MoviePlayPKcbbf"), (uintptr_t)ret0);
-  hook_arm64(so_find_addr("_Z12OS_MovieStopv"), (uintptr_t)ret0);
-  hook_arm64(so_find_addr("_Z20OS_MovieSetSkippableb"), (uintptr_t)ret0);
+  // Movie playback using videoplayer module
+  hook_arm64(so_find_addr("_Z12OS_MoviePlayPKcbbf"), (uintptr_t)OS_MoviePlay);
+  hook_arm64(so_find_addr("_Z12OS_MovieStopv"), (uintptr_t)OS_MovieStop);
+  hook_arm64(so_find_addr("_Z20OS_MovieSetSkippableb"), (uintptr_t)OS_MovieSetSkippable);
   hook_arm64(so_find_addr("_Z17OS_MovieTextScalei"), (uintptr_t)ret0);
-  hook_arm64(so_find_addr("_Z17OS_MovieIsPlayingPi"), (uintptr_t)ret0);
+  hook_arm64(so_find_addr("_Z17OS_MovieIsPlayingPi"), (uintptr_t)OS_MovieIsPlaying);
   hook_arm64(so_find_addr("_Z20OS_MoviePlayinWindowPKciiiibbf"),
              (uintptr_t)ret0);
 

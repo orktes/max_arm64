@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "__locale": "c",
+        "cctype": "c",
+        "locale": "c"
+    }
+}

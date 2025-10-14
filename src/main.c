@@ -23,6 +23,7 @@
 #include "imports.h"
 #include "so_util.h"
 #include "util.h"
+#include "videoplayer.h"
 
 static void *heap_so_base = NULL;
 static size_t heap_so_limit = 0;
@@ -175,6 +176,8 @@ int main(void) {
   // won't save without it
   // debugPrintf("Creating savegames directory...\n");
   mkdir("gamedata/savegames", 0755);
+
+  videoplayer_set_overlay("Loading...");
 
   // debugPrintf("Updating imports...\n");
   update_imports();
