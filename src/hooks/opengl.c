@@ -125,7 +125,9 @@ static int init_sdl_opengl(void) {
 
   debugPrintf("=== SDL OpenGL ES initialization complete ===\n");
   return 0;
-}void NVEventEGLMakeCurrent(void) {
+}
+
+void NVEventEGLMakeCurrent(void) {
   debugPrintf("NVEventEGLMakeCurrent called\n");
   if (sdl_window && sdl_gl_context) {
     if (SDL_GL_MakeCurrent(sdl_window, sdl_gl_context) < 0) {
