@@ -71,11 +71,6 @@ static void init_gamecontroller(void) {
   if (gamecontroller_initialized)
     return;
 
-  if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
-    debugPrintf("SDL gamecontroller init failed: %s\n", SDL_GetError());
-    return;
-  }
-
   // Check if gamecontroller is present
   int num_joysticks = SDL_NumJoysticks();
   if (num_joysticks > 0) {
@@ -199,12 +194,6 @@ void exit_game(int code) {
     gamecontroller = NULL;
     debugPrintf("✓ SDL2 GameController closed\n");
   }
-  if (gamecontroller_initialized) {
-    debugPrintf("Quitting SDL2...\n");
-    SDL_Quit();
-    gamecontroller_initialized = 0;
-    debugPrintf("✓ SDL2 quit\n");
-  }
 
   // deinit openal
   debugPrintf("Calling deinit_openal()...\n");
@@ -327,11 +316,17 @@ uint32_t WarGamepad_GetGamepadButtons(int padnum) {
     init_gamecontroller();
   }
 
+  SDL_Event e;
+  if (SDL_PollEvent(&e) != 0) {
+    if (e.type == SDL_QUIT) {
+      should_stop_game = 1;
+    }
+  }
+
+
   if (!gamecontroller) {
     return 0;
   }
-
-  SDL_GameControllerUpdate();
 
   uint32_t mask = 0;
 
@@ -400,8 +395,6 @@ float WarGamepad_GetGamepadAxis(int padnum, int axis) {
   if (!gamecontroller) {
     return 0.0f;
   }
-
-  SDL_GameControllerUpdate();
 
   float value = 0.0f;
 

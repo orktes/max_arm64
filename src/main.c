@@ -7,6 +7,7 @@
  * of the MIT license.  See the LICENSE file for details.
  */
 
+#include <SDL2/SDL.h>
 #include <ctype.h>
 #include <fcntl.h>
 #include <linux/fb.h>
@@ -236,6 +237,11 @@ int main(void) {
   debugPrintf("Freeing temporary memory...\n");
   so_free_temp();
 
+  if (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_VIDEO) < 0) {
+    fatal_error("SDL init failed: %s\n", SDL_GetError());
+    return 1;
+  }
+
   debugPrintf("Calling initGraphics()...\n");
   initGraphics();
   debugPrintf("initGraphics() completed\n");
@@ -250,6 +256,8 @@ int main(void) {
 
   debugPrintf("Cleaning up gamedata mapping...\n");
   gamedata_mapping_cleanup();
+
+  SDL_Quit();
 
   exit_game(0);
 
