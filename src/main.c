@@ -66,8 +66,9 @@ static void check_data(void) {
     files[numfiles++] = config.mod_file;
   // check if all the required files are present
   for (unsigned int i = 0; i < numfiles; ++i) {
-    if (stat(files[i], &st) < 0) {
-      fatal_error("Could not find\n%s.\nCheck your data files.", files[i]);
+    const char *file = gamedata_mapping_get(files[i]);
+    if (stat(file, &st) < 0) {
+      fatal_error("Could not find\n%s.\nCheck your data files.", file);
       break;
     }
   }
