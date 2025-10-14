@@ -46,6 +46,7 @@ set(SOURCES
     src/imports.c
     src/so_util.c
     src/util.c
+    src/videoplayer.c
     src/hooks/game.c
     src/hooks/openal.c
     src/hooks/opengl.c
