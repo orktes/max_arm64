@@ -113,7 +113,7 @@ int static check_filesystem_case_sensitive(void) {
 
   char *path = strdup(CONFIG_NAME);
   for (char *p = path; *p; ++p) {
-    *p = tolower((unsigned char)*p);
+    *p = toupper((unsigned char)*p);
   }
 
   struct stat st;
