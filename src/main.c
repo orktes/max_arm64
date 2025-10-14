@@ -19,11 +19,11 @@
 #include "config.h"
 #include "error.h"
 #include "gamedata_mapping.h"
-#include "videoplayer.h"
 #include "hooks.h"
 #include "imports.h"
 #include "so_util.h"
 #include "util.h"
+#include "videoplayer.h"
 
 static void *heap_so_base = NULL;
 static size_t heap_so_limit = 0;
@@ -178,7 +178,6 @@ int main(void) {
   mkdir("gamedata/savegames", 0755);
 
   videoplayer_set_overlay("Loading...");
-
 
   // debugPrintf("Updating imports...\n");
   update_imports();
