@@ -17,5 +17,6 @@ int videoplayer_is_available(void);
 int videoplayer_play(const char *filename, uint8_t arg1, uint8_t arg2, float arg3);
 void videoplayer_stop(void);
 int videoplayer_is_playing(void);
+void videoplayer_set_overlay(const char *text);
 
 #endif // VIDEOPLAYER_H

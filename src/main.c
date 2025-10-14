@@ -19,6 +19,7 @@
 #include "config.h"
 #include "error.h"
 #include "gamedata_mapping.h"
+#include "videoplayer.h"
 #include "hooks.h"
 #include "imports.h"
 #include "so_util.h"
@@ -175,6 +176,9 @@ int main(void) {
   // won't save without it
   // debugPrintf("Creating savegames directory...\n");
   mkdir("gamedata/savegames", 0755);
+
+  videoplayer_set_overlay("Loading...");
+
 
   // debugPrintf("Updating imports...\n");
   update_imports();

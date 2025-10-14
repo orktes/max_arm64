@@ -61,6 +61,8 @@ static SDL_GameController *gamecontroller = NULL;
 
 static int r1_pressed = 0;
 
+static int video_skippable = 0;
+
 // this is used to inform the game that it should exit
 static int should_stop_game = 0;
 
@@ -383,7 +385,7 @@ uint32_t WarGamepad_GetGamepadButtons(int padnum) {
     mask |= BTN_DPAD_RIGHT;
 
   // if BTN_A, BTN_B, or BTN_START is pressed, stop video playback
-  if (mask & (BTN_A | BTN_B | BTN_START)) {
+  if (videoplayer_is_playing() && video_skippable && (mask & (BTN_A | BTN_B | BTN_START))) {
     videoplayer_stop();
   }
   
@@ -540,6 +542,20 @@ static int OS_MovieIsPlaying(void) {
   return playing;
 }
 
+static void OS_MovieSetSkippable(uint8_t skippable) {
+  if (video_skippable == skippable) {
+    return; // No change
+  }
+
+  video_skippable = skippable;
+
+  if (skippable) {
+    videoplayer_set_overlay("Press START to skip");
+  } else {
+    videoplayer_set_overlay("");
+  }
+}
+
 // Signal handler for debugging crashes
 static void crash_handler(int sig) {
   debugPrintf("=== CRASH DETECTED ===\n");
@@ -615,7 +631,7 @@ void patch_game(void) {
   // Movie playback using videoplayer module
   hook_arm64(so_find_addr("_Z12OS_MoviePlayPKcbbf"), (uintptr_t)OS_MoviePlay);
   hook_arm64(so_find_addr("_Z12OS_MovieStopv"), (uintptr_t)OS_MovieStop);
-  hook_arm64(so_find_addr("_Z20OS_MovieSetSkippableb"), (uintptr_t)ret0);
+  hook_arm64(so_find_addr("_Z20OS_MovieSetSkippableb"), (uintptr_t)OS_MovieSetSkippable);
   hook_arm64(so_find_addr("_Z17OS_MovieTextScalei"), (uintptr_t)ret0);
   hook_arm64(so_find_addr("_Z17OS_MovieIsPlayingPi"), (uintptr_t)OS_MovieIsPlaying);
   hook_arm64(so_find_addr("_Z20OS_MoviePlayinWindowPKciiiibbf"),

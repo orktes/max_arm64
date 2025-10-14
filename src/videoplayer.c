@@ -18,6 +18,8 @@
 #include "config.h"
 #include "util.h"
 
+#define OVERLAY_FILENAME "loading_video_overlay.txt"
+
 static int ffmpeg_available = -1;  // -1 = not checked, 0 = not available, 1 = available
 static pid_t ffmpeg_pid = -1;     // PID of running ffmpeg process
 static int videoplayer_initialized = 0;
@@ -130,10 +132,17 @@ int videoplayer_play(const char *filename, uint8_t arg1, uint8_t arg2, float arg
     } else if (ffmpeg_pid == 0) {
         // Child process - run ffmpeg
         char input_path[512];
-        char scale_filter[64];
+        char scale_filter[128];
+        char overlay_filter[256];
         
         snprintf(input_path, sizeof(input_path), "gamedata/%s", filename);
+        
+        // Create a composite filter that scales and adds text overlay
+        // The drawtext filter reads from the overlay file and positions text at bottom left
         snprintf(scale_filter, sizeof(scale_filter), "scale=%d:%d", screen_width, screen_height);
+        snprintf(overlay_filter, sizeof(overlay_filter), 
+                "%s,drawtext=textfile=%s:fontcolor=white:fontsize=24:x=10:y=h-th-10:reload=1",
+                scale_filter, OVERLAY_FILENAME);
         
         // Redirect stdout and stderr to /dev/null to avoid cluttering output
         if (!freopen("/dev/null", "w", stdout)) {
@@ -143,11 +152,11 @@ int videoplayer_play(const char *filename, uint8_t arg1, uint8_t arg2, float arg
             // If freopen fails, we can still continue but output won't be redirected
         }
         
-        // Execute ffmpeg
+        // Execute ffmpeg with text overlay
         execl("/usr/bin/ffmpeg", "ffmpeg",
               "-i", input_path,
               "-pix_fmt", "bgra",
-              "-vf", scale_filter,
+              "-vf", overlay_filter,
               "-f", "fbdev",
               "/dev/fb0",
               NULL);
@@ -156,7 +165,7 @@ int videoplayer_play(const char *filename, uint8_t arg1, uint8_t arg2, float arg
         execlp("ffmpeg", "ffmpeg",
                "-i", input_path,
                "-pix_fmt", "bgra", 
-               "-vf", scale_filter,
+               "-vf", overlay_filter,
                "-f", "fbdev",
                "/dev/fb0",
                NULL);
@@ -225,6 +234,9 @@ void videoplayer_stop(void) {
     }
     
     ffmpeg_pid = -1;
+    
+    // Clean up overlay file
+    unlink(OVERLAY_FILENAME);
 }
 
 int videoplayer_is_playing(void) {
@@ -241,14 +253,32 @@ int videoplayer_is_playing(void) {
         debugPrintf("videoplayer: ffmpeg process finished with status %d\n", 
                    WEXITSTATUS(status));
         ffmpeg_pid = -1;
+        
+        // Clean up overlay file when video finishes
+        unlink(OVERLAY_FILENAME);
+        
         return 0;
     } else if (result == -1) {
         // Error checking process
         debugPrintf("videoplayer: Error checking ffmpeg process: %s\n", strerror(errno));
         ffmpeg_pid = -1;
+        
+        // Clean up overlay file on error
+        unlink(OVERLAY_FILENAME);
+        
         return 0;
     }
     
     // Process is still running
     return 1;
+}
+
+void videoplayer_set_overlay(const char *text) {
+    FILE *f = fopen(OVERLAY_FILENAME, "w");
+    if (!f) {
+        debugPrintf("videoplayer: Failed to create %s: %s\n", OVERLAY_FILENAME, strerror(errno));
+        return;
+    }
+    fprintf(f, "%s\n", text ? text : "Loading...");
+    fclose(f);
 }
