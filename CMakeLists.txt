@@ -42,6 +42,7 @@ set(SOURCES
     src/main.c
     src/config.c
     src/error.c
+    src/gamedata_mapping.c
     src/imports.c
     src/so_util.c
     src/util.c
