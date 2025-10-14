@@ -219,9 +219,9 @@ void exit_game(int code) {
   _exit(code);
 }
 
-void ExitAndroidGame(int code) { 
+void ExitAndroidGame(int code) {
   debugPrintf("ExitAndroidGame called with code %d\n", code);
-  should_stop_game = 1;  
+  should_stop_game = 1;
 }
 
 // this is supposed to allocate and return a thread handle struct, but the game
