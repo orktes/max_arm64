@@ -98,6 +98,11 @@ static void check_for_4x3(void) {
       // check if height is approximately 3/4 of width (4:3 aspect ratio)
       if (aspect_ratio < 1.4f) {
         *(uint8_t *)so_find_addr("Use4x3") = 1; // Enable 4:3 aspect ratio
+        *(uint8_t *)so_find_addr("WideScreenRenderHack") = 0;
+        *(uint8_t *)so_find_addr("IsWideScreen") = 0;
+        *(uint8_t *)so_find_addr("AdjustAspectRatio") = 0;
+        *(float *)so_find_addr("AspectRatioXMult") = 1.0f;
+        *(float *)so_find_addr("AspectRatioYMult") = 1.0f;
       } else {
         debugPrintf(
             "Aspect ratio is not 4:3 (or close), keeping widescreen mode\n");
@@ -214,10 +219,6 @@ int main(void) {
   *(uint8_t *)so_find_addr("IsAndroidPaused") = 0;
   *(uint8_t *)so_find_addr("UseRGBA8") = 1; // RGB565 FBOs suck
 
-  if (!config.force_widescreen) {
-    check_for_4x3();
-  }
-
   debugPrintf("Finding game functions...\n");
   uint32_t (*initGraphics)(void) = (void *)so_find_addr_rx("_Z12initGraphicsv");
   uint32_t (*ShowJoystick)(int show) =
@@ -242,8 +243,17 @@ int main(void) {
     return 1;
   }
 
+  int numVideoDrivers = SDL_GetNumVideoDrivers();
+  for (int i = 0; i < numVideoDrivers; i++) {
+    debugPrintf("Video driver %d: %s\n", i, SDL_GetVideoDriver(i));
+  }
+
   debugPrintf("Calling initGraphics()...\n");
   initGraphics();
+
+  if (!config.force_widescreen) {
+    check_for_4x3();
+  }
   debugPrintf("initGraphics() completed\n");
 
   debugPrintf("Calling ShowJoystick(0)...\n");
