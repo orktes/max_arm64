@@ -20,26 +20,50 @@ Port of Max Payne for the R36S game console.
 
 ## Controls
 
-| Button     | Description      |
-|------------|------------------|
-| A          | Jump             |
-| B          | Crouch           |
-| X          | Reload           |
-| Y          | Use/Zoom         |
-| L1         | Bullet time      |
-| R1         | Shoot            |
-| L2         | Previous Weapon  |
-| R2         | Next Weapon      |
-| D-Up       | Pain Killer      |
-| D-Down     | Reload           |
-| D-Left     | Previous Weapon  |
-| D-Right    | Next Weapon      |
-| Select+R1  | Quicksave        |
-| Start      | Menu             |
-| Left Stick | Move             |
-| Right Stick| Look/Aim         |
+| Button            | Description      |
+|-------------------|------------------|
+| A                 | Jump             |
+| B                 | Crouch           |
+| X                 | Reload           |
+| Y                 | Use/Zoom         |
+| L1                | Bullet time      |
+| R1                | Shoot            |
+| L2                | Previous Weapon  |
+| R2                | Next Weapon      |
+| D-Up              | Pain Killer      |
+| D-Down            | Reload           |
+| D-Left            | Previous Weapon  |
+| D-Right           | Next Weapon      |
+| Select+R1         | Quicksave        |
+| Start             | Menu             |
+| Left Stick        | Move             |
+| Right Stick.      | Look/Aim         |
+| Select+UP/DOWN    | Adjust Camera Y  |
+| Select+LEFT/RIGHT | Adjust Camera X  |
 
 ![Menu_bg_Controls](https://github.com/user-attachments/assets/a818d8d9-3787-4108-b043-a3a3db2c7eb5)
+
+## Configuration
+
+Once you've started the game a conf/config.txt will be created in the `/roms/ports/maxpayne/` directory. You can edit this file to change various settings:
+
+```
+use_bloom 1
+trilinear_filter 1
+disable_mipmaps 0
+language 0
+crouch_toggle 1
+character_shadows 1
+drop_highest_lod 0
+show_weapon_menu 0
+vsync_enabled 1
+decal_limit 0.5
+debris_limit 1
+force_widescreen 0
+stick_deadzone 0.1
+aspect_ratio_x_mult 1.18
+aspect_ratio_y_mult 0.84
+```
 
 ## Known Issues
 - On 1:1 aspect ratio the game screen looks a bit stretched. Working on a fix.

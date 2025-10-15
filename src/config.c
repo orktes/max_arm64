@@ -65,7 +65,7 @@ int read_config(const char *file) {
   char line[1024] = {0};
 
   memset(&config, 0, sizeof(Config));
-  config.use_bloom = 0;
+  config.use_bloom = 1;
   config.trilinear_filter = 1;
   config.disable_mipmaps = 0;
   config.language = 0; // english
