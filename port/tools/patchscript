@@ -5,6 +5,8 @@ LOGFILE="$GAMEDIR/patchlog.txt"
 
 exec > >(tee -a "$LOGFILE") 2>&1
 
+set -e
+
 unpack_apk() {
     mkdir -p "$GAMEDIR/.apktemp" &&
     unzip -o "$GAMEDIR/*.apk" -d "$GAMEDIR/.apktemp"
