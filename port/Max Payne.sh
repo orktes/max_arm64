@@ -70,7 +70,7 @@ fi
 
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 
-$GPTOKEYB "maxpayne_arm64" "xbox360" & pm_platform_helper "$GAMEDIR/maxpayne_arm64"
+$GPTOKEYB "maxpayne_arm64" & pm_platform_helper "$GAMEDIR/maxpayne_arm64"
 
 pm_message "Starting Max Payne... This can take a few seconds."
 

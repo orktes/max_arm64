@@ -39,7 +39,7 @@ Port of Max Payne for the R36S game console.
 | Select+UP/DOWN    | Adjust Camera Y  |
 | Select+LEFT/RIGHT | Adjust Camera X  |
 
-![Menu_bg_Controls](https://github.com/user-attachments/assets/227b8190-2a6d-4e5b-b6e6-7f21b3218b38)
+![Menu_bg_Controls](/assets/Menu_bg_Controls.jpg)
 
 
 ## Configuration
