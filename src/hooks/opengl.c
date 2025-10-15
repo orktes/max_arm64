@@ -61,18 +61,14 @@ static int init_sdl_opengl(void) {
     // Default resolution if we can't get display info
     display_width = 1280;
     display_height = 720;
-    debugPrintf("⚠ Using default resolution: %dx%d\n", display_width, display_height);
+    debugPrintf("⚠ Using default resolution: %dx%d\n", display_width,
+                display_height);
   }
 
   // Create SDL window with OpenGL context
   sdl_window = SDL_CreateWindow(
-    "Max Payne R36S",
-    SDL_WINDOWPOS_CENTERED,
-    SDL_WINDOWPOS_CENTERED,
-    display_width,
-    display_height,
-    SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN
-  );
+      "Max Payne R36S", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+      display_width, display_height, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
 
   if (!sdl_window) {
     debugPrintf("✗ SDL window creation failed: %s\n", SDL_GetError());
@@ -120,6 +116,7 @@ static int init_sdl_opengl(void) {
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
   glViewport(0, 0, screen_width, screen_height);
+
   SDL_GL_SwapWindow(sdl_window);
   debugPrintf("✓ Test render completed\n");
 
@@ -131,7 +128,8 @@ void NVEventEGLMakeCurrent(void) {
   debugPrintf("NVEventEGLMakeCurrent called\n");
   if (sdl_window && sdl_gl_context) {
     if (SDL_GL_MakeCurrent(sdl_window, sdl_gl_context) < 0) {
-      debugPrintf("NVEventEGLMakeCurrent: SDL make current failed: %s\n", SDL_GetError());
+      debugPrintf("NVEventEGLMakeCurrent: SDL make current failed: %s\n",
+                  SDL_GetError());
     }
   } else {
     debugPrintf("NVEventEGLMakeCurrent: SDL context not available\n");
@@ -142,7 +140,8 @@ void NVEventEGLUnmakeCurrent(void) {
   debugPrintf("NVEventEGLUnmakeCurrent called\n");
   if (sdl_window) {
     if (SDL_GL_MakeCurrent(sdl_window, NULL) < 0) {
-      debugPrintf("NVEventEGLUnmakeCurrent: SDL unmake current failed: %s\n", SDL_GetError());
+      debugPrintf("NVEventEGLUnmakeCurrent: SDL unmake current failed: %s\n",
+                  SDL_GetError());
     }
   } else {
     debugPrintf("NVEventEGLUnmakeCurrent: SDL window not available\n");
@@ -151,7 +150,7 @@ void NVEventEGLUnmakeCurrent(void) {
 
 int NVEventEGLInit(void) {
   debugPrintf("NVEventEGLInit called\n");
-  
+
   // Initialize SDL OpenGL ES context
   if (init_sdl_opengl() == 0) {
     debugPrintf("✓ SDL OpenGL ES initialization successful\n");
@@ -170,6 +169,24 @@ void NVEventEGLSwapBuffers(void) {
   }
 
   if (sdl_window) {
+
+    // hack to fix 1:1 screens rendering in 4:3
+    if (screen_height == screen_width && !config.force_widescreen) {
+      int wanted_height = screen_height*(3.0f/4.0f);
+      int y_offset = (screen_height - wanted_height) / 2;
+      
+      // render black bars on top and bottom of the screen
+
+      glEnable(GL_SCISSOR_TEST);
+      glScissor(0, 0, screen_width, y_offset);
+      glClearColor(0.0f, 0.0f, 0.0, 1.0f);
+      glClear(GL_COLOR_BUFFER_BIT);
+      glScissor(0, screen_height - y_offset, screen_width, y_offset);
+      glClear(GL_COLOR_BUFFER_BIT);
+      glDisable(GL_SCISSOR_TEST);
+    }
+   
+
     SDL_GL_SwapWindow(sdl_window);
   } else {
     debugPrintf("NVEventEGLSwapBuffers: SDL window not available\n");
