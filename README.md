@@ -53,7 +53,7 @@ trilinear_filter 1
 disable_mipmaps 0
 language 0
 crouch_toggle 1
-character_shadows 1
+character_shadows 1 // 1 - one blob; 2 - foot shadows
 drop_highest_lod 0
 show_weapon_menu 0
 vsync_enabled 1
@@ -64,6 +64,8 @@ stick_deadzone 0.1
 aspect_ratio_x_mult 1.18
 aspect_ratio_y_mult 0.84
 ```
+
+Note some settings can be changed in-game. See the Controls section above.
 
 ## Known Issues
 - On 1:1 aspect ratio the game screen looks a bit stretched. Working on a fix.
