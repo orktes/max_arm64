@@ -66,6 +66,8 @@ static int video_skippable = 0;
 // this is used to inform the game that it should exit
 static int should_stop_game = 0;
 
+static int config_mode = 0;
+
 // Initialize SDL2 GameController for gamepad support
 static void init_gamecontroller(void) {
   if (gamecontroller_initialized)
@@ -168,6 +170,12 @@ int OS_ScreenGetHeight(void) {
 int OS_ScreenGetWidth(void) {
   // debugPrintf("OS_ScreenGetWidth: returning %d\n", screen_width);
   return screen_width;
+}
+
+float GetDeviceAspect(void) {
+  float aspect = (float)screen_width / (float)screen_height;
+  // debugPrintf("GetDeviceAspect: returning aspect ratio %.4f\n", aspect);
+  return aspect;
 }
 
 char *OS_FileGetArchiveName(int mode) {
@@ -297,6 +305,56 @@ void inputControllerDebug(int indx) {
   }
 }
 
+void config_hot_keys(void) {
+  // if up or down pressed adjust aspect ratio multiplier for Y
+  if (SDL_GameControllerGetButton(gamecontroller,
+                                  SDL_CONTROLLER_BUTTON_DPAD_UP)) {
+    float *yMult = (float *)so_find_addr("AspectRatioYMult");
+    if (yMult) {
+      *yMult += 0.01f;
+      if (*yMult > 2.0f)
+        *yMult = 2.0f;
+      debugPrintf("Increased AspectRatioYMult to %.4f\n", *yMult);
+      config.aspect_ratio_y_mult = *yMult;
+    }
+  }
+  if (SDL_GameControllerGetButton(gamecontroller,
+                                  SDL_CONTROLLER_BUTTON_DPAD_DOWN)) {
+    float *yMult = (float *)so_find_addr("AspectRatioYMult");
+    if (yMult) {
+      *yMult -= 0.01f;
+      if (*yMult < 0.5f)
+        *yMult = 0.5f;
+      debugPrintf("Decreased AspectRatioYMult to %.4f\n", *yMult);
+      config.aspect_ratio_y_mult = *yMult;
+    }
+  }
+
+  // if left or right pressed adjust aspect ratio multiplier for X
+  if (SDL_GameControllerGetButton(gamecontroller,
+                                  SDL_CONTROLLER_BUTTON_DPAD_LEFT)) {
+    float *xMult = (float *)so_find_addr("AspectRatioXMult");
+    if (xMult) {
+      *xMult -= 0.01f;
+      if (*xMult < 0.5f)
+        *xMult = 0.5f;
+      debugPrintf("Decreased AspectRatioXMult to %.4f\n", *xMult);
+      config.aspect_ratio_x_mult = *xMult;
+    }
+  }
+  if (SDL_GameControllerGetButton(gamecontroller,
+                                  SDL_CONTROLLER_BUTTON_DPAD_RIGHT)) {
+    float *xMult = (float *)so_find_addr("AspectRatioXMult");
+    if (xMult) {
+      *xMult += 0.01f;
+      if (*xMult > 2.0f)
+        *xMult = 2.0f;
+      debugPrintf("Increased AspectRatioXMult to %.4f\n", *xMult);
+      config.aspect_ratio_x_mult = *xMult;
+    }
+  }
+}
+
 // 0, 5, 6: XBOX 360
 // 4: MogaPocket
 // 7: MogaPro
@@ -338,8 +396,16 @@ uint32_t WarGamepad_GetGamepadButtons(int padnum) {
       mask |= BTN_BACK;
       return mask; // return immediately to avoid other inputs
     } else {
+      config_mode = 1;
+      config_hot_keys();
       return mask; // Just ignore buttons to avoid confusion
     }
+  } else if (config_mode) {
+    config_mode = 0;
+
+    write_config(CONFIG_NAME);
+    debugPrintf("Config saved to %s\n", CONFIG_NAME);
+    return mask; // Just ignore buttons to avoid confusion
   }
 
   if (SDL_GameControllerGetButton(gamecontroller, SDL_CONTROLLER_BUTTON_A))
@@ -451,8 +517,8 @@ int MaxPayne_ConfiguredInput_readCrouch(void *this) {
 
 int MaxPayne_ConfiguredInput_readShoot(void *this) {
   // debugPrintf("MaxPayne_ConfiguredInput_readShoot called\n");
-  //  MaxPayne_InputControl_getButton(&sm_control[2], 0); // only makes it shoot
-  //  once
+  //  MaxPayne_InputControl_getButton(&sm_control[2], 0); // only makes it
+  //  shoot once
   return r1_pressed; // shoot while R1 is held
 }
 
@@ -509,9 +575,9 @@ void *NVThreadGetCurrentJNIEnv(void) {
 
   // Log occasionally to show it's being called
   if (call_count <= 5 || call_count % 1000 == 0) {
-    debugPrintf(
-        "NVThreadGetCurrentJNIEnv called (%d times), returning fake JNI env\n",
-        call_count);
+    debugPrintf("NVThreadGetCurrentJNIEnv called (%d times), returning fake "
+                "JNI env\n",
+                call_count);
   }
 
   return &fake_tls[0];
@@ -638,6 +704,8 @@ void patch_game(void) {
              (uintptr_t)OS_ScreenGetWidth);
   hook_arm64(so_find_addr("_Z18OS_ScreenGetHeightv"),
              (uintptr_t)OS_ScreenGetHeight);
+  // _Z15GetDeviceAspectv
+  hook_arm64(so_find_addr("_Z15GetDeviceAspectv"), (uintptr_t)GetDeviceAspect);
 
   hook_arm64(so_find_addr("_Z9NvAPKOpenPKc"), (uintptr_t)NvAPKOpen);
 
@@ -670,8 +738,8 @@ void patch_game(void) {
   hook_arm64(so_find_addr("_Z25WarGamepad_GetGamepadAxisii"),
              (uintptr_t)WarGamepad_GetGamepadAxis);
 
-  // TODO implement these once we figure out how to do it with R36S (it supports
-  // vibrate if hardware hooked up)
+  // TODO implement these once we figure out how to do it with R36S (it
+  // supports vibrate if hardware hooked up)
   hook_arm64(so_find_addr("_Z12VibratePhonei"), (uintptr_t)ret0);
   hook_arm64(so_find_addr("_Z14Mobile_Vibratei"), (uintptr_t)ret0);
 
@@ -709,8 +777,8 @@ void patch_game(void) {
   hook_arm64(so_find_addr("_ZNK24MaxPayne_ConfiguredInput9readShootEv"),
              (uintptr_t)MaxPayne_ConfiguredInput_readShoot);
 
-  // if mod file is enabled, hook into R_File::setFileSystemRoot to set the mod
-  // as the priority archive before R_File::loadArchives is called
+  // if mod file is enabled, hook into R_File::setFileSystemRoot to set the
+  // mod as the priority archive before R_File::loadArchives is called
   if (config.mod_file[0]) {
     R_File_unloadArchives =
         (void *)so_find_addr_rx("_ZN6R_File14unloadArchivesEv");

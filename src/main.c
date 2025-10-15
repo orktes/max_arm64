@@ -91,16 +91,19 @@ static void check_for_4x3(void) {
     if (ioctl(fb_fd, FBIOGET_VSCREENINFO, &vinfo) == 0) {
       int screen_width = vinfo.xres;
       int screen_height = vinfo.yres;
-      debugPrintf("Framebuffer resolution: %dx%d\n", screen_width,
-                  screen_height);
-
+       
       float aspect_ratio = (float)screen_width / (float)screen_height;
       // check if height is approximately 3/4 of width (4:3 aspect ratio)
       if (aspect_ratio < 1.4f) {
         *(uint8_t *)so_find_addr("Use4x3") = 1; // Enable 4:3 aspect ratio
         *(uint8_t *)so_find_addr("WideScreenRenderHack") = 0;
         *(uint8_t *)so_find_addr("IsWideScreen") = 0;
-        *(uint8_t *)so_find_addr("AdjustAspectRatio") = 0;
+        *(uint8_t *)so_find_addr("AdjustAspectRatio") = 1;
+
+        // adjust ratios based on the original aspect ratio
+        *(float *)so_find_addr("AspectRatioXMult") = config.aspect_ratio_x_mult;
+        *(float *)so_find_addr("AspectRatioYMult") = config.aspect_ratio_y_mult;
+        
       } else {
         debugPrintf(
             "Aspect ratio is not 4:3 (or close), keeping widescreen mode\n");

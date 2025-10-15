@@ -38,6 +38,8 @@ typedef struct {
   char mod_file[0x100];
   int force_widescreen; // 0=disabled, 1=enabled
   float stick_deadzone; // deadzone for analog sticks (0.0 - 1.0)
+  float aspect_ratio_x_mult; // aspect ratio multiplier for X axis
+  float aspect_ratio_y_mult; // aspect ratio multiplier for Y axis
 } Config;
 
 extern Config config;

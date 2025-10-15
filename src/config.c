@@ -28,7 +28,9 @@
   CONFIG_VAR_FLOAT(debris_limit);                                              \
   CONFIG_VAR_STR(mod_file);                                                    \
   CONFIG_VAR_INT(force_widescreen);                                            \
-  CONFIG_VAR_FLOAT(stick_deadzone);
+  CONFIG_VAR_FLOAT(stick_deadzone);                                            \
+  CONFIG_VAR_FLOAT(aspect_ratio_x_mult);                                       \
+  CONFIG_VAR_FLOAT(aspect_ratio_y_mult);
 
 Config config;
 
@@ -76,6 +78,8 @@ int read_config(const char *file) {
   config.debris_limit = 1.0f;
   config.force_widescreen = 0; // disabled by default
   config.stick_deadzone = 0.1f; // default deadzone for analog sticks
+  config.aspect_ratio_x_mult = 1.18f;
+  config.aspect_ratio_y_mult = 0.84f;
 
   FILE *f = fopen(file, "r");
   if (f == NULL)
