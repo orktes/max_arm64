@@ -18,3 +18,4 @@ package/
 temp/
 archive/
 Makefile
+conf/

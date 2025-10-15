@@ -70,7 +70,18 @@ fi
 
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 
-$GPTOKEYB "maxpayne_arm64" & pm_platform_helper "$GAMEDIR/maxpayne_arm64"
+source $controlfolder/runtimes/"love_11.5"/love.txt
+
+pm_message "Starting Launcher"
+
+$GPTOKEYB "$LOVE_GPTK" &
+pm_platform_helper "$LOVE_BINARY"
+
+$LOVE_RUN "$GAMEDIR/launcher" || {
+    pm_message "Launcher crashed or exited with an error."
+    sleep 5s
+    exit 1
+}
 
 pm_message "Starting Max Payne... This can take a few seconds."
 
@@ -81,6 +92,8 @@ touch "debug.log"
 tail -f "debug.log" | while read LOGLINE; do
    pm_message "$LOGLINE"
 done &
+
+$GPTOKEYB "maxpayne_arm64" & pm_platform_helper "$GAMEDIR/maxpayne_arm64"
 
 ./maxpayne_arm64 
 

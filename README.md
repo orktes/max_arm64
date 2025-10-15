@@ -46,11 +46,12 @@ Port of Max Payne for the R36S game console.
 
 Once you've started the game a conf/config.txt will be created in the `/roms/ports/maxpayne/` directory. You can edit this file to change various settings:
 
+
 ```
 use_bloom 1
 trilinear_filter 1
 disable_mipmaps 0
-language 0
+language 0 // 0 - English; 1 - French; 2 - Spanish; 3 - Italian; 4 - Russian; 5 - Japanese; 6 - German
 crouch_toggle 1
 character_shadows 1 // 1 - one blob; 2 - foot shadows
 drop_highest_lod 0
