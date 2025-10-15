@@ -69,7 +69,6 @@ aspect_ratio_y_mult 0.84
 Note some settings can be changed in-game. See the Controls section above.
 
 ## Known Issues
-- On 1:1 aspect ratio the game screen looks a bit stretched. Working on a fix.
 - Changing shooting from R1 to anything else will cause shooting to not work. This is due to a small hack in the input system to make R1 work as shoot button. Changing other buttons is however possible. 
 
 ## Building
