@@ -77,10 +77,10 @@ local function drawButton(x, y, letter, text, radius)
 
     -- Draw text
     if text then
-        love.graphics.print("=" .. text, x + radius * 2 + 5, y + radius - 7)
+        love.graphics.print(text, x + radius * 2 + 5, y + radius - 7)
     end
 
-    return radius * 2 + 5 + (text and FONT:getWidth("=" .. text) or 0)
+    return radius * 2 + 5 + (text and FONT:getWidth(text) or 0)
 end
 
 -- Draw an arrow shape
