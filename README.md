@@ -4,8 +4,14 @@ Port of Max Payne for the R36S game console.
 
 ![IMG_0457](https://github.com/user-attachments/assets/a6442ebb-5f86-4233-bf63-d0f4218f4dfa)
 
-<img width="640" height="480" alt="screenshot_6" src="https://github.com/user-attachments/assets/c6be4856-9d17-4a48-b138-d4365d0e3e5b" />
-<img width="640" height="480" alt="screenshot_3" src="https://github.com/user-attachments/assets/1abe6ee5-06f7-4cd2-822f-4dbf18d033c8" />
+|   |   |
+|---|---|
+|![MENU_SCREENSHOT](screenshots/R36H/screenshot_fix_000.png)| ![MENU_SCREENSHOT](screenshots/R36H/screenshot_fix_006.png) |
+|![MENU_SCREENSHOT](screenshots/R36H/screenshot_fix_032.png)| ![MENU_SCREENSHOT](screenshots/R36H/screenshot_fix_020.png)|
+
+
+
+
 
 ## Installing
 
@@ -44,8 +50,9 @@ Port of Max Payne for the R36S game console.
 
 ## Configuration
 
-Once you've started the game a conf/config.txt will be created in the `/roms/ports/maxpayne/` directory. You can edit this file to change various settings:
+![MENU_SCREENSHOT](screenshots/R36H/screenshot_fix_001.png)
 
+Once you've started the game a conf/config.txt will be created in the `/roms/ports/maxpayne/` directory. You can edit this file to change various settings:
 
 ```
 use_bloom 1
