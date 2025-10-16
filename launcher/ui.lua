@@ -238,8 +238,8 @@ local function drawConfig(uiState, config)
     buttonX = buttonX + drawArrow(buttonX, textBaseline + arrowOffset, "left") + 2
     buttonX = buttonX + drawArrow(buttonX, textBaseline + arrowOffset, "right") + 2
     love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.print("=Adjust", buttonX, textBaseline)
-    buttonX = buttonX + FONT:getWidth("=Adjust") + 15
+    love.graphics.print("Adjust", buttonX, textBaseline)
+    buttonX = buttonX + FONT:getWidth("Adjust") + 15
     buttonX = buttonX + drawButton(buttonX, buttonY - 5, "Y", "Revert") + 15
     buttonX = buttonX + drawButton(buttonX, buttonY - 5, "B", "Return")
 
