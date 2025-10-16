@@ -130,19 +130,7 @@ add_custom_target(package
     COMMAND ${CMAKE_COMMAND} -E make_directory package/maxpayne/tools
     COMMAND ${CMAKE_COMMAND} -E copy "port/tools/patchscript" "package/maxpayne/tools/patchscript"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "launcher" "package/maxpayne/launcher"
-    COMMAND git rev-parse HEAD > package/maxpayne/VERSION.txt
-    DEPENDS build-in-docker
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Creating package from Docker build"
-)
-
-add_custom_target(archive
-    COMMAND ${CMAKE_COMMAND} -E remove_directory archive
-    COMMAND ${CMAKE_COMMAND} -E make_directory archive
-    COMMAND cd package && zip -r ../archive/maxpayne_arm64.zip *
-    DEPENDS package
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Creating archive from Docker build"
+    COMMAND /bin/sh -c './scripts/generate_version_string.sh > package/maxpayne/VERSION.txt'    
 )
 
 add_custom_target(upload-package-to-device
