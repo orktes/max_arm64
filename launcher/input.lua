@@ -64,6 +64,7 @@ local callbacks = {
     toggleValue = nil,
     saveConfig = nil,
     loadConfig = nil,
+    returnDefaultConfigs = nil,
     enterEdit = nil,
     exitEdit = nil
 }
@@ -276,6 +277,10 @@ function input.gamepadPressed(joy, button, ui, launcherOptions)
     elseif button == "y" then
         if callbacks.loadConfig then
             callbacks.loadConfig()
+        end
+    elseif button == "x" then
+        if callbacks.returnDefaultConfigs then
+            callbacks.returnDefaultConfigs()
         end
     elseif button == "start" then
         if callbacks.saveConfig then

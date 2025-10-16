@@ -94,6 +94,11 @@ local function exitEdit()
     appState.edit = false
 end
 
+local function returnDefaultConfigs()
+    config.returnDefaults()
+    setMessage("Restored default settings", 2.0)
+end
+
 -- Love2D callbacks
 function love.load()
     love.window.setTitle("Max Payne")
@@ -119,6 +124,7 @@ function love.load()
         saveConfig = saveConfig,
         loadConfig = loadConfig,
         enterEdit = enterEdit,
+        returnDefaultConfigs = returnDefaultConfigs,
         exitEdit = exitEdit
     })
 

@@ -241,6 +241,7 @@ local function drawConfig(uiState, config)
     love.graphics.print("Adjust", buttonX, textBaseline)
     buttonX = buttonX + FONT:getWidth("Adjust") + 15
     buttonX = buttonX + drawButton(buttonX, buttonY - 5, "Y", "Revert") + 15
+    buttonX = buttonX + drawButton(buttonX, buttonY - 5, "X", "Defaults") + 15
     buttonX = buttonX + drawButton(buttonX, buttonY - 5, "B", "Return")
 
     for i, key in ipairs(order) do

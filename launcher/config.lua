@@ -21,6 +21,11 @@ local settings = {
     aspect_ratio_y_mult = 0.84
 }
 
+local defaultSettings = {}
+for k, v in pairs(settings) do
+    defaultSettings[k] = v
+end
+
 -- Metadata for settings
 local meta = {
     use_bloom = {
@@ -186,6 +191,14 @@ local function parseConfigText(text)
                 end
             end
         end
+    end
+end
+
+-- Save default settings to config.txt
+function config.returnDefaults()
+    settings = {}
+    for k, v in pairs(defaultSettings) do
+        settings[k] = v
     end
 end
 
