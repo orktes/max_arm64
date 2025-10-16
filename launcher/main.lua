@@ -77,7 +77,7 @@ local function enterControls()
 end
 
 local function exitApp()
-    love.event.quit()
+    love.event.quit(1)
 end
 
 local function saveAndExit()
