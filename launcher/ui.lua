@@ -16,6 +16,12 @@ function ui.initialize()
   end
 end
 
+
+-- Cleanup function
+function ui.cleanup()
+  
+end
+
 -- Draw a slider control
 local function drawSlider(x, y, w, h, value, min, max)
   love.graphics.rectangle("line", x, y, w, h)
@@ -33,7 +39,7 @@ local function drawLauncher(uiState, launcherOptions)
   local y = margin
 
   love.graphics.setColor(0, 0, 0, 0.6)
-  love.graphics.rectangle("fill", 0, 0, 640, 480)
+  love.graphics.rectangle("fill", 0, 0, W/scale, H/scale)
   love.graphics.setColor(1, 1, 1, 1)
   love.graphics.setFont(TITLE_FONT)
   love.graphics.print("MAX PAYNE LAUNCHER", x, y)
@@ -59,6 +65,8 @@ end
 
 -- Draw the config screen
 local function drawConfig(uiState, config)
+  local W, H = love.graphics.getDimensions()
+  local scale = math.min(W/640, H/480)
   local settings = config.getSettings()
   local meta = config.getMeta()
   local order = config.getOrder()
@@ -68,7 +76,7 @@ local function drawConfig(uiState, config)
   local y = margin
 
   love.graphics.setColor(0, 0, 0, 0.7)
-  love.graphics.rectangle("fill", 0, 0, 640, 480)
+  love.graphics.rectangle("fill", 0, 0, W/scale, H/scale)
   love.graphics.setColor(1, 1, 1, 1)
   
   love.graphics.print("CONFIG (A=toggle, <-/->=adjust, START=save, Y=revert, B/BACK=return)", x, y)
@@ -118,15 +126,27 @@ end
 -- Main draw function
 function ui.draw(uiState, config, launcherOptions)
   local W, H = love.graphics.getDimensions()
+  
+  if BACKGROUND_IMAGE then
+    love.graphics.setColor(1, 1, 1, 1)
+    local bgWidth = BACKGROUND_IMAGE:getWidth()
+    local bgHeight = BACKGROUND_IMAGE:getHeight()
+    
+    local scaleX = W / bgWidth
+    local scaleY = H / bgHeight
+    local scale = math.max(scaleX, scaleY) -- Use max to ensure full coverage
+    
+    local scaledWidth = bgWidth * scale
+    local scaledHeight = bgHeight * scale
+    local offsetX = (W - scaledWidth) / 2
+    local offsetY = (H - scaledHeight) / 2
+    
+    love.graphics.draw(BACKGROUND_IMAGE, offsetX, offsetY, 0, scale, scale)
+  end
+
   local scale = math.min(W/640, H/480)
   love.graphics.push()
   love.graphics.scale(scale, scale)
-
-  -- Draw background
-  if BACKGROUND_IMAGE then
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(BACKGROUND_IMAGE, 0, 0, 0, 640 / BACKGROUND_IMAGE:getWidth(), 480 / BACKGROUND_IMAGE:getHeight())
-  end
 
   -- Draw current screen
   if uiState.mode == "launcher" then
