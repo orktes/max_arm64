@@ -7,6 +7,11 @@ jobs:
   pull_request:
     runs-on: ubuntu-22.04
     steps:
+      - name: Configure git
+        run: |
+           git config --global user.email "jaakko.lukkari@gmail.com"
+           git config --global user.name "orktes"
+
       - name: Checkout PortMaster
         run: git clone --filter=blob:none --depth 1 --no-checkout https://github.com/PortsMaster/PortMaster-New.git PortMaster-New-Fork
 
@@ -40,7 +45,7 @@ jobs:
         run: |
           cd PortMaster-New-Fork
           git add .
-          git commit -m "Update Max Payne port to $(head -1 PortMaster-New-Fork/ports/maxpayne/maxpayne/version.txt)"
+          git commit -m "Update Max Payne port to $(head -1 PortMaster-New-Fork/ports/maxpayne/maxpayne/VERSION.txt)"
 
       - name: Push Changes
         run: |
