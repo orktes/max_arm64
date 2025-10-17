@@ -20,6 +20,13 @@ jobs:
     runs-on: ubuntu-22.04-arm
 
     steps:
+    - name: Log in to the Container registry
+      uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+      with:
+        registry: https://ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     - uses: actions/checkout@v4
 
     - name: Build & run in Dev Container
