@@ -2,8 +2,6 @@ name: PortMaster Update
 
 on:
   workflow_dispatch:
-  release:
-    types: [created]
 
 jobs:
   update:
