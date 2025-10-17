@@ -1,0 +1,14 @@
+{
+  "name": "MaxPayne R36S DevContainer",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  ],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode"
+}

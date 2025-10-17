@@ -3,7 +3,6 @@ build/
 build_x11/
 build_debug/
 build_x11_debug/
-build_docker/
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
