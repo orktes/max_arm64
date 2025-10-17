@@ -9,6 +9,7 @@ jobs:
     steps:
       - name: Configure git
         run: |
+           echo "machine github.com login ${{ secrets.GITHUB_TOKEN }} password x-oauth-basic" >> ~/.netrc
            git config --global user.email "jaakko.lukkari@gmail.com"
            git config --global user.name "orktes"
 
