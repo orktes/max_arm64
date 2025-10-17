@@ -32,3 +32,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/v')
       with:
         files: archive/maxpayne_arm64.zip
+
+    - name: Trigger PortMaster Update
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: gh workflow run "PortMaster Update"
