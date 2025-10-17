@@ -45,6 +45,7 @@ jobs:
       - name: Run test script
         run: |
           cd PortMaster-New-Fork/
+          ls -lh
           ./tools/prepare_repo.sh
           python3 tools/build_release.py --do-check
 
