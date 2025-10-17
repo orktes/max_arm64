@@ -84,7 +84,7 @@ pm_platform_helper "$LOVE_BINARY"
 
 
 function start_maxpayne {
-  kill -9 $launcherGPTOKEYBPid
+  $ESUDO kill -9 $launcherGPTOKEYBPid
   $GPTOKEYB "maxpayne_arm64" & 
   pm_platform_helper "$GAMEDIR/maxpayne_arm64"
 
