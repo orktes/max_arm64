@@ -21,6 +21,7 @@ jobs:
           cd PortMaster-New-Fork
           git config core.sparseCheckout true
           echo "ports/maxpayne" >> .git/info/sparse-checkout
+          echo "tools" >> .git/info/sparse-checkout
           git checkout main
 
       - name: Rebase from the original repo
