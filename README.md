@@ -82,7 +82,7 @@ Note some settings can be changed in-game. See the Controls section above.
 2. make archive
 3. See archive in `archive/` folder.
 
-Alternatively, you can use the provided `build_with_docker.sh` script to build the project inside a Docker container. This script will handle all the necessary steps and dependencies for you.
+Alternatively, you can use the provided `./scripts/build_with_docker.sh` (run from root of the repo) script to build the project inside a Docker container. This script will handle all the necessary steps and dependencies for you.
 
 ## Credits
 
