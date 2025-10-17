@@ -46,7 +46,7 @@ jobs:
         run: |
           cd PortMaster-New-Fork
           git add .
-          git commit -m "Update Max Payne port to $(head -1 PortMaster-New-Fork/ports/maxpayne/maxpayne/VERSION.txt)"
+          git commit -m "Update Max Payne port to $(head -1 ports/maxpayne/maxpayne/VERSION.txt)"
 
       - name: Push Changes
         run: |
