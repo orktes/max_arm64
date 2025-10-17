@@ -77,12 +77,6 @@ pm_message "Starting Launcher"
 # Remove debug log
 rm -f "debug.log"
 
-touch "debug.log"
-tail -f "debug.log" | while read LOGLINE; do
-   pm_message "$LOGLINE"
-done &
-
-
 $GPTOKEYB "$LOVE_GPTK" &
 pm_platform_helper "$LOVE_BINARY"
 
