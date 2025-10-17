@@ -13,8 +13,6 @@ baseJSON=$(cat ./port/port.json)
 function set_property {
     local key="$1"
     local value="$2"
-    # escape value
-    value=$(echo "$value" | jq -R .)
 
     baseJSON=$(echo "$baseJSON" | jq --arg key "$key" --arg value "$value" '.attr[$key] = $value')
 }
