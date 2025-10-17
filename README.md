@@ -82,6 +82,8 @@ Note some settings can be changed in-game. See the Controls section above.
 2. make archive
 3. See archive in `archive/` folder.
 
+Alternatively, you can use the provided `build_with_docker.sh` script to build the project inside a Docker container. This script will handle all the necessary steps and dependencies for you.
+
 ## Credits
 
 This port is largely based on the work of [Andy Nguyen](https://github.com/fgsfdsfgs) who ported the game to [PSVita](https://github.com/fgsfdsfgs/max_vita) and [Nintendo Switch](https://github.com/fgsfdsfgs/max_nx) so lots of credit needs to go there.
