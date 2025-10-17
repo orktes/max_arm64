@@ -31,7 +31,6 @@
     ],
     "availability": "paid",
     "reqs": [
-      "power"
     ],
     "arch": [
       "aarch64"
