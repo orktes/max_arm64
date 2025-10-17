@@ -3,7 +3,6 @@ name: PortMaster PR
 on:
   workflow_dispatch:
 
-
 jobs:
   pull_request:
     runs-on: ubuntu-22.04
@@ -13,10 +12,10 @@ jobs:
 
       - name: Set to sparse checkout
         run: | 
-        cd PortMaster-New-Fork
-        git config core.sparseCheckout true
-        echo "ports/maxpayne" >> .git/info/sparse-checkout
-        git checkout main
+          cd PortMaster-New-Fork
+          git config core.sparseCheckout true
+          echo "ports/maxpayne" >> .git/info/sparse-checkout
+          git checkout main
 
       - name: Rebase from the original repo
         run: |
