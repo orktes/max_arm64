@@ -2,15 +2,6 @@
 FROM monkeyx/retro_builder:arm64
 
 RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    libavcodec-dev \
-    libavformat-dev \
-    libavutil-dev \
-    libswscale-dev \
-    libavfilter-dev \
-    libavdevice-dev \
-    libfontconfig1 \
-    libfontconfig1-dev \
     zip \
     rsync \
     sshpass \

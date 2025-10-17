@@ -19,14 +19,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Build & run in Dev Container
-      uses: devcontainers/ci@v0.3
-      with:
-        configFile: .devcontainer/devcontainer.json
-        platform: linux/arm64
-        runCmd: |
-          cmake .
-          make archive
+    - name: Build build container
+      run: |
+        cd .devcontainer
+        docker build -t maxpayne_arm64_builder .
+    
+    - name: Run build
+      run: |
+        docker run --rm -v ${{ github.workspace }}:/workspace maxpayne_arm64_builder
+
+    - name: Run archive
+      run: |
+        docker run --rm -v ${{ github.workspace }}:/workspace maxpayne_arm64_builder make archive
 
     - name: Release
       uses: softprops/action-gh-release@v2
