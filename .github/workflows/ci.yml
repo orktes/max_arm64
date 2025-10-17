@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: write
+  actions: write
+  
 
 jobs:
   build:
@@ -36,3 +38,5 @@ jobs:
     - name: Trigger PortMaster Update
       if: startsWith(github.ref, 'refs/tags/v')
       run: gh workflow run "PortMaster Update"
+      env:
+        GH_TOKEN: ${{ github.token }}
