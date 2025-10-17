@@ -9,12 +9,12 @@ jobs:
     steps:
       - name: Configure git
         run: |
-           echo "machine github.com login ${{ secrets.GITHUB_TOKEN }} password x-oauth-basic" >> ~/.netrc
+           echo "machine github.com login ${{ secrets.GH_TOKEN }} password x-oauth-basic" >> ~/.netrc
            git config --global user.email "jaakko.lukkari@gmail.com"
            git config --global user.name "orktes"
 
       - name: Checkout PortMaster
-        run: git clone --filter=blob:none --depth 1 --no-checkout git@github.com:PortsMaster/PortMaster-New.git PortMaster-New-Fork
+        run: git clone --filter=blob:none --depth 1 --no-checkout https://github.com/PortsMaster/PortMaster-New.git PortMaster-New-Fork
 
       - name: Set to sparse checkout
         run: | 
@@ -23,10 +23,10 @@ jobs:
           echo "ports/maxpayne" >> .git/info/sparse-checkout
           git checkout main
 
-      - name: Add in our own repo
+      - name: Rebase from the original repo
         run: |
           cd PortMaster-New-Fork
-          git remote add stage https://${{github.actor}}@github.com/orktes/PortMaster-New.git
+          git remote add stage https://orktes@github.com/orktes/PortMaster-New.git
 
       - name: Remove Old Release
         run: |
