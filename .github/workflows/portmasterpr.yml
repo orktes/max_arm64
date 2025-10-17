@@ -42,6 +42,12 @@ jobs:
           ls -lh
           rm maxpayne_arm64.zip
 
+      - name: Run test script
+        run: |
+          cd PortMaster-New-Fork/
+          ./tools/prepare_repo.sh
+          python3 tools/build_release.py --do-check
+
       - name: Commit
         run: |
           cd PortMaster-New-Fork
