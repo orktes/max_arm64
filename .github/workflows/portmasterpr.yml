@@ -22,6 +22,7 @@ jobs:
           git config core.sparseCheckout true
           echo "ports/maxpayne" >> .git/info/sparse-checkout
           echo "tools" >> .git/info/sparse-checkout
+          echo "SOURCE_SETUP.txt" >> .git/info/sparse-checkout
           git checkout main
 
       - name: Rebase from the original repo
