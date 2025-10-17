@@ -24,7 +24,7 @@
     "runtime": [],
     "store": [
       {
-        "name": "https://play.google.com/store/apps/details?id=com.rockstar.maxpayne",
+        "name": "Google Play Store",
         "gameurl": "https://play.google.com/store/apps/details?id=com.rockstar.maxpayne",
         "developerurl": "https://www.remedygames.com/"
       }
