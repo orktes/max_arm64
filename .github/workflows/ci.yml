@@ -24,6 +24,9 @@ jobs:
     - name: Build & run in Dev Container
       uses: devcontainers/ci@v0.3
       with:
+        imageName: ghcr.io/orktes/max_r36s/devcontainer
+        cacheFrom: ghcr.io/orktes/max_r36s/devcontainer
+        push: always
         configFile: .devcontainer/devcontainer.json
         runCmd: |
           cmake .
