@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     zip \
     rsync \
     sshpass \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 

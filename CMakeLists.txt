@@ -76,15 +76,18 @@ add_custom_target(package
     COMMAND ${CMAKE_COMMAND} -E echo "Creating package..."
     COMMAND ${CMAKE_COMMAND} -E remove_directory package
     COMMAND ${CMAKE_COMMAND} -E make_directory package/maxpayne
-    COMMAND ${CMAKE_COMMAND} -E copy README.md package/maxpayne/README.md
     COMMAND ${CMAKE_COMMAND} -E copy ${TARGET_NAME} package/maxpayne/
     COMMAND ${CMAKE_COMMAND} -E copy_directory patch package/maxpayne/patch
     COMMAND ${CMAKE_COMMAND} -E copy "port/Max Payne.sh" "package/Max Payne.sh"
-    COMMAND ${CMAKE_COMMAND} -E copy "port/port.json" "package/maxpayne/port.json"
+    COMMAND ${CMAKE_COMMAND} -E copy "port/cover.png" "package/cover.png"
+    COMMAND ${CMAKE_COMMAND} -E copy "port/gameinfo.xml" "package/gameinfo.xml"
+    COMMAND ${CMAKE_COMMAND} -E copy "port/screenshot.png" "package/screenshot.png"
     COMMAND ${CMAKE_COMMAND} -E make_directory package/maxpayne/tools
     COMMAND ${CMAKE_COMMAND} -E copy "port/tools/patchscript" "package/maxpayne/tools/patchscript"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "launcher" "package/maxpayne/launcher"
     COMMAND /bin/sh -c './scripts/generate_version_string.sh > package/maxpayne/VERSION.txt'
+    COMMAND /bin/sh -c './scripts/generate_port_json.sh > package/port.json'
+    COMMAND /bin/sh -c './scripts/generate_port_readme.sh > package/README.md'
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Creating package"
     DEPENDS ${TARGET_NAME}
