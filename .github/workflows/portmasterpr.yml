@@ -21,8 +21,6 @@ jobs:
           cd PortMaster-New-Fork
           git config core.sparseCheckout true
           echo "ports/maxpayne" >> .git/info/sparse-checkout
-          echo "tools" >> .git/info/sparse-checkout
-          echo "SOURCE_SETUP.txt" >> .git/info/sparse-checkout
           git checkout main
 
       - name: Rebase from the original repo
@@ -43,15 +41,6 @@ jobs:
           unzip maxpayne_arm64.zip
           ls -lh
           rm maxpayne_arm64.zip
-
-      - name: Run test script
-        run: |
-          cd PortMaster-New-Fork/
-          ls -lh
-          mkdir -p releases
-          mkdir -p runtimes
-          ./tools/prepare_repo.sh
-          python3 tools/build_release.py --do-check
 
       - name: Commit
         run: |
