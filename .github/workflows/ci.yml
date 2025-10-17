@@ -14,24 +14,19 @@ permissions:
 jobs:
   build:
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04-arm
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Build build container
-      run: |
-        cd .devcontainer
-        docker build -t maxpayne_arm64_builder .
-    
-    - name: Run build
-      run: |
-        docker run --rm -v ${{ github.workspace }}:/workspace maxpayne_arm64_builder
-
-    - name: Run archive
-      run: |
-        docker run --rm -v ${{ github.workspace }}:/workspace maxpayne_arm64_builder make archive
-
+    - name: Build & run in Dev Container
+      uses: devcontainers/ci@v0.3
+      with:
+        configFile: .devcontainer/devcontainer.json
+        runCmd: |
+          cmake .
+          make archive
+          
     - name: Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/v')
