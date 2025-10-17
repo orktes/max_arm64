@@ -24,6 +24,7 @@ jobs:
 
       - name: Remove Old Release
         run: |
+          mkdir -p PortMaster-New-Fork/ports/maxpayne
           cd PortMaster-New-Fork/ports/maxpayne
           rm -Rf *
 
