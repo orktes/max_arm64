@@ -78,10 +78,21 @@ pm_message "Starting Launcher"
 rm -f "debug.log"
 
 $GPTOKEYB "$LOVE_GPTK" &
+launcherGPTOKEYBPid=$!
+
 pm_platform_helper "$LOVE_BINARY"
 
-$GPTOKEYB "maxpayne_arm64" & pm_platform_helper "$GAMEDIR/maxpayne_arm64"
 
-$LOVE_RUN "$GAMEDIR/launcher" && ./maxpayne_arm64 
+function start_maxpayne {
+  kill -9 $launcherGPTOKEYBPid
+  $GPTOKEYB "maxpayne_arm64" & 
+  pm_platform_helper "$GAMEDIR/maxpayne_arm64"
+
+  pm_message "Starting Max Payne"
+  ./maxpayne_arm64 
+}
+
+
+$LOVE_RUN "$GAMEDIR/launcher" && start_maxpayne
 
 pm_finish
