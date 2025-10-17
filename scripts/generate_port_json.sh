@@ -31,14 +31,7 @@ function set_property_from_file {
 }
 
 set_property_from_file "inst" "./port/txt/instructions.txt"
-
-# add also controls to the md version
-controls=$(cat "./port/md/controls.md")
-instructions=$(cat "./port/md/instructions.md")
-
-combined="$instructions\n$controls"
-
-set_property "inst_md" "$combined"
+set_property_from_file "inst_md" "./port/md/instructions.md"
 
 
 set_property_from_file "desc" "./port/txt/description.txt"
