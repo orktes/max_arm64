@@ -8,8 +8,6 @@ jobs:
   pull_request:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      
       - name: Checkout PortMaster
         run: git clone --filter=blob:none --depth 1 --no-checkout https://github.com/orktes/PortMaster-New.git PortMaster-New-Fork
 
