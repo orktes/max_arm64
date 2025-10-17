@@ -33,6 +33,7 @@ jobs:
           cd PortMaster-New-Fork/ports/maxpayne
           curl -L -o maxpayne_arm64.zip https://github.com/orktes/max_r36s/releases/latest/download/maxpayne_arm64.zip
           unzip maxpayne_arm64.zip
+          ls -lh
           rm maxpayne_arm64.zip
 
       - name: Commit
