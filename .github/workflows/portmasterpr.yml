@@ -14,7 +14,7 @@ jobs:
            git config --global user.name "orktes"
 
       - name: Checkout PortMaster
-        run: git clone --filter=blob:none --depth 1 --no-checkout https://github.com/PortsMaster/PortMaster-New.git PortMaster-New-Fork
+        run: git clone --filter=blob:none --depth 1 --no-checkout git@github.com:PortsMaster/PortMaster-New.git PortMaster-New-Fork
 
       - name: Set to sparse checkout
         run: | 
@@ -23,7 +23,7 @@ jobs:
           echo "ports/maxpayne" >> .git/info/sparse-checkout
           git checkout main
 
-      - name: Rebase from the original repo
+      - name: Add in our own repo
         run: |
           cd PortMaster-New-Fork
           git remote add stage https://${{github.actor}}@github.com/orktes/PortMaster-New.git
