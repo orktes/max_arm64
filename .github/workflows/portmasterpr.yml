@@ -1,0 +1,49 @@
+name: PortMaster PR
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches: [ "main" ]
+
+
+jobs:
+  pull_request:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Checkout PortMaster
+        run: git clone --filter=blob:none --depth 1 --no-checkout https://github.com/orktes/PortMaster-New PortMaster-New-Fork
+
+      - name: Set to sparse checkout
+        run: | 
+        cd PortMaster-New-Fork
+        git config core.sparseCheckout true
+        echo "ports/maxpayne" >> .git/info/sparse-checkout
+        git checkout main
+
+      - name: Remove Old Release
+        run: |
+          cd PortMaster-New-Fork/ports/maxpayne
+          rm -Rf *
+
+      - name: Download latest github release
+        run: |
+          cd PortMaster-New-Fork/ports/maxpayne
+          curl -L -o maxpayne_arm64.zip https://github.com/orktes/max_r36s/releases/latest/download/maxpayne_arm64.zip
+          unzip maxpayne_arm64.zip
+          rm maxpayne_arm64.zip
+
+      - name: Commit
+        run: |
+          cd PortMaster-New-Fork
+          git add .
+          git commit -m "Update Max Payne port to $(head -1 PortMaster-New-Fork/ports/maxpayne/version.txt)"
+
+      - name: Push Changes
+        run: |
+          cd PortMaster-New-Fork
+          git push origin main
