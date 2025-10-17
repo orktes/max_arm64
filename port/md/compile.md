@@ -1,4 +1,4 @@
-# Compiling
+## Compiling
 
 ```sh
 $ git clone git@github.com:orktes/max_r36s.git
