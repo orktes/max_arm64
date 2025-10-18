@@ -1,5 +1,5 @@
 {
-  "name": "MaxPayne R36S DevContainer",
+  "name": "MaxPayne ARM64 DevContainer",
   "build": {
     "dockerfile": "Dockerfile"
   },

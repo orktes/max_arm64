@@ -1,3 +1,3 @@
-Max Payne Mobile Android version ported to R36S and similar devices.
+Max Payne Mobile Android version ported to ARM64 Linux devices.
 
 A fugitive undercover cop framed for murder, hunted by cops and the mob, Max is a man with his back against the wall, fighting a battle he cannot hope to win. Max Payne is a relentless story-driven game about a man on the edge, fighting to clear his name while struggling to uncover the truth about his slain family amongst a myriad of plot-twists.

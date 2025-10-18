@@ -1,1 +1,1 @@
-Max Payne Mobile Android version ported to R36S and similar devices.
+Max Payne Mobile Android version ported to ARM64 Linux devices.
