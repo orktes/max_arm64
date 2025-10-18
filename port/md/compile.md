@@ -2,7 +2,7 @@
 
 ```sh
 $ git clone git@github.com:orktes/max_amd64.git
-$ cd max_r36s
+$ cd max_amd64
 $ cmake .
 $ make build # Builds just the maxpayne_arm64 binary
 $ make package # Creates a PortMaster compliant package in the `package/` directory. This also creates a proper port.json and README.md for the distribution.
