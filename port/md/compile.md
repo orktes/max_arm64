@@ -1,7 +1,7 @@
 ## Compiling
 
 ```sh
-$ git clone git@github.com:orktes/max_r36s.git
+$ git clone git@github.com:orktes/max_amd64.git
 $ cd max_r36s
 $ cmake .
 $ make build # Builds just the maxpayne_arm64 binary
