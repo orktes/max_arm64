@@ -67,7 +67,7 @@ static int init_sdl_opengl(void) {
 
   // Create SDL window with OpenGL context
   sdl_window = SDL_CreateWindow(
-      "Max Payne R36S", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+      "Max Payne ARM64", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
       display_width, display_height, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
 
   if (!sdl_window) {
