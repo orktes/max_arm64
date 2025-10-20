@@ -86,7 +86,7 @@ Alternatively, you can use the provided `./scripts/build_with_docker.sh` (run fr
 
 ## Credits
 
-This port is largely based on the work of [Andy Nguyen](https://github.com/fgsfdsfgs) who ported the game to [PSVita](https://github.com/fgsfdsfgs/max_vita) and [Nintendo Switch](https://github.com/fgsfdsfgs/max_nx) so lots of credit needs to go there.
+This port is largely based on the work of fgsfdsfgs and Andy Nguyen who ported the game to [PSVita](https://github.com/fgsfdsfgs/max_vita) and [Nintendo Switch](https://github.com/fgsfdsfgs/max_nx) so lots of credit needs to go there.
 
 Special thanks to [Dia2809](https://github.com/Dia2809) for contributing a fix to the framebuffer fallback so that the port works on CFWs without DRM+GDM and otherwise helping me out on the [PortMaster](https://portmaster.games/) packing of the port.
 
