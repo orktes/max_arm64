@@ -218,20 +218,74 @@ function input.gamepadPressed(joy, button, ui, launcherOptions)
                 callbacks.moveSel(1)
             end
         elseif button == "a" then
-            if ui.sel == 1 then
-                if callbacks.launchGame then
-                    callbacks.launchGame()
+            -- Use cached showInstallOption from appState
+            if ui.showInstallOption then
+                if ui.sel == 1 and callbacks.enterInstallLanguageSelect then
+                    callbacks.enterInstallLanguageSelect()
                 end
-            elseif ui.sel == 2 then
-                if callbacks.enterSettings then
-                    callbacks.enterSettings()
-                end
-            elseif ui.sel == 3 then
-                if callbacks.enterControls then
-                    callbacks.enterControls()
+            else
+                if ui.sel == 1 then
+                    if callbacks.launchGame then
+                        callbacks.launchGame()
+                    end
+                elseif ui.sel == 2 then
+                    if callbacks.enterSettings then
+                        callbacks.enterSettings()
+                    end
+                elseif ui.sel == 3 then
+                    if callbacks.enterControls then
+                        callbacks.enterControls()
+                    end
                 end
             end
         elseif button == "b" or button == "back" then
+            if callbacks.exitApp then
+                callbacks.exitApp()
+            end
+        end
+        return
+    end
+
+    if ui.mode == "no_files" then
+        if button == "b" or button == "back" then
+            if callbacks.exitApp then
+                callbacks.exitApp()
+            end
+        end
+        return
+    end
+
+    if ui.mode == "install_language_select" then
+        if button == "dpup" then
+            if callbacks.moveSel then
+                callbacks.moveSel(-1)
+            end
+        elseif button == "dpdown" then
+            if callbacks.moveSel then
+                callbacks.moveSel(1)
+            end
+        elseif button == "a" then
+            if callbacks.toggleLanguageSelection then
+                callbacks.toggleLanguageSelection()
+            end
+        elseif button == "x" then
+            if callbacks.startInstallation then
+                callbacks.startInstallation()
+            end
+        elseif button == "b" or button == "back" then
+            if callbacks.cancelInstallation then
+                callbacks.cancelInstallation()
+            end
+        end
+        return
+    end
+
+    if ui.mode == "installing" then
+        if not ui.installInProgress and (button == "a" or button == "start") then
+            if callbacks.finishInstallation then
+                callbacks.finishInstallation()
+            end
+        elseif ui.installFailed and (button == "b" or button == "back") then
             if callbacks.exitApp then
                 callbacks.exitApp()
             end
@@ -248,6 +302,16 @@ function input.gamepadPressed(joy, button, ui, launcherOptions)
         elseif button == "start" then
             if callbacks.exitEdit then
                 callbacks.exitEdit()
+            end
+        end
+        return
+    end
+
+    -- Config mode and Controls mode
+    if ui.mode == "controls" then
+        if button == "b" or button == "back" then
+            if callbacks.saveAndExit then
+                callbacks.saveAndExit()
             end
         end
         return
@@ -320,22 +384,85 @@ function input.keyPressed(key, ui, launcherOptions)
                 callbacks.moveSel(1)
             end
         elseif key == "return" or key == "space" then
-            if ui.sel == 1 then
-                if callbacks.launchGame then
-                    callbacks.launchGame()
+            -- Use cached showInstallOption from appState
+            if ui.showInstallOption then
+                if ui.sel == 1 and callbacks.enterInstallLanguageSelect then
+                    callbacks.enterInstallLanguageSelect()
                 end
-            elseif ui.sel == 2 then
-                if callbacks.enterSettings then
-                    callbacks.enterSettings()
-                end
-            elseif ui.sel == 3 then
-                if callbacks.enterControls then
-                    callbacks.enterControls()
+            else
+                if ui.sel == 1 then
+                    if callbacks.launchGame then
+                        callbacks.launchGame()
+                    end
+                elseif ui.sel == 2 then
+                    if callbacks.enterSettings then
+                        callbacks.enterSettings()
+                    end
+                elseif ui.sel == 3 then
+                    if callbacks.enterControls then
+                        callbacks.enterControls()
+                    end
                 end
             end
         elseif key == "escape" then
             if callbacks.exitApp then
                 callbacks.exitApp()
+            end
+        end
+        return
+    end
+
+    if ui.mode == "no_files" then
+        if key == "escape" then
+            if callbacks.exitApp then
+                callbacks.exitApp()
+            end
+        end
+        return
+    end
+
+    if ui.mode == "install_language_select" then
+        if key == "up" then
+            if callbacks.moveSel then
+                callbacks.moveSel(-1)
+            end
+        elseif key == "down" then
+            if callbacks.moveSel then
+                callbacks.moveSel(1)
+            end
+        elseif key == "return" or key == "space" then
+            if callbacks.toggleLanguageSelection then
+                callbacks.toggleLanguageSelection()
+            end
+        elseif key == "x" then
+            if callbacks.startInstallation then
+                callbacks.startInstallation()
+            end
+        elseif key == "escape" then
+            if callbacks.cancelInstallation then
+                callbacks.cancelInstallation()
+            end
+        end
+        return
+    end
+
+    if ui.mode == "installing" then
+        if not ui.installInProgress and (key == "return" or key == "space") then
+            if callbacks.finishInstallation then
+                callbacks.finishInstallation()
+            end
+        elseif ui.installFailed and key == "escape" then
+            if callbacks.exitApp then
+                callbacks.exitApp()
+            end
+        end
+        return
+    end
+
+    if ui.mode == "controls" then
+        if key == "escape" then
+            if callbacks.saveAndExit then
+                callbacks.saveAndExit()
             end
         end
         return

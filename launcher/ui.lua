@@ -21,10 +21,22 @@ function ui.initialize()
         LOGO_IMAGE = love.graphics.newImage("logo.png")
     end
 
-    local controlsImage = assert(io.open("gamedata/data/menu/bitmaps/Menu_bg_Controls.tga", "rb"))
-    local controlsFileData = love.filesystem.newFileData(controlsImage:read("*a"), "Menu_bg_Controls.tga.png")
-    controlsImage:close()
-    CONTROLS_IMAGE = love.graphics.newImage(controlsFileData)
+    -- Try to load controls image, but don't fail if it's missing
+    local controlsFile = io.open("gamedata/data/menu/bitmaps/Menu_bg_Controls.tga", "rb")
+    if controlsFile then
+        local success, result = pcall(function()
+            local controlsFileData = love.filesystem.newFileData(controlsFile:read("*a"), "Menu_bg_Controls.tga.png")
+            controlsFile:close()
+            return love.graphics.newImage(controlsFileData)
+        end)
+        if success then
+            CONTROLS_IMAGE = result
+        else
+            if controlsFile then
+                controlsFile:close()
+            end
+        end
+    end
 end
 
 -- Cleanup function
@@ -81,6 +93,35 @@ local function drawButton(x, y, letter, text, radius)
     end
 
     return radius * 2 + 5 + (text and FONT:getWidth(text) or 0)
+end
+
+-- Draw a rounded rectangle button (for START, SELECT, etc.)
+local function drawRectButton(x, y, text, label)
+    local padding = 8
+    local height = 24
+    local textWidth = FONT:getWidth(text)
+    local width = textWidth + padding * 2
+    local radius = 6
+    
+    -- Draw dark gray rounded rectangle fill
+    love.graphics.setColor(0.3, 0.3, 0.3, 1)
+    love.graphics.rectangle("fill", x, y, width, height, radius, radius)
+    
+    -- Draw white rounded rectangle border
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.rectangle("line", x, y, width, height, radius, radius)
+    
+    -- Draw button text
+    love.graphics.setColor(0.7, 0.7, 0.7, 1)
+    love.graphics.print(text, x + padding, y + (height - FONT:getHeight()) / 2)
+    
+    -- Draw label text
+    love.graphics.setColor(1, 1, 1, 1)
+    if label then
+        love.graphics.print(label, x + width + 10, y + (height - FONT:getHeight()) / 2)
+    end
+    
+    return width + 10 + (label and FONT:getWidth(label) or 0)
 end
 
 -- Draw an arrow shape
@@ -141,7 +182,10 @@ local function drawLauncher(uiState, launcherOptions)
 
     love.graphics.setFont(FONT)
 
-    for i, option in ipairs(launcherOptions) do
+    -- Use cached showInstallOption from appState
+    local options = uiState.showInstallOption and {"Install Max Payne"} or launcherOptions
+
+    for i, option in ipairs(options) do
         local isSel = (i == uiState.sel)
         local sy = y + (i - 1) * 40
 
@@ -154,7 +198,7 @@ local function drawLauncher(uiState, launcherOptions)
         love.graphics.print(option, x, sy)
     end
 
-    y = y + (#launcherOptions * 40) + 20
+    y = y + (#options * 40) + 20
 
     -- Render VERSION.txt below menu selections if it exists (using io)
     local versionInfo = nil
@@ -198,12 +242,143 @@ local function drawControls(uiState)
     love.graphics.rectangle("fill", 0, 0, W, H)
     love.graphics.setColor(1, 1, 1, 1)
 
-    local imgW, imgH = CONTROLS_IMAGE:getWidth(), CONTROLS_IMAGE:getHeight()
-    local scale = math.min(W / imgW, H / imgH)
-    local drawW, drawH = imgW * scale, imgH * scale
-    local x = (W - drawW) / 2
-    local y = (H - drawH) / 2
-    love.graphics.draw(CONTROLS_IMAGE, x, y, 0, scale, scale)
+    if CONTROLS_IMAGE then
+        local imgW, imgH = CONTROLS_IMAGE:getWidth(), CONTROLS_IMAGE:getHeight()
+        local scale = math.min(W / imgW, H / imgH)
+        local drawW, drawH = imgW * scale, imgH * scale
+        local x = (W - drawW) / 2
+        local y = (H - drawH) / 2
+        love.graphics.draw(CONTROLS_IMAGE, x, y, 0, scale, scale)
+    else
+        -- Fallback when controls image is not available
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.printf("Controls image not available", 0, H / 2 - 10, W, "center")
+    end
+end
+
+-- Draw the install language selection screen
+local function drawInstallLanguageSelect(uiState, config)
+    local W, H = 640, 480
+    local languageNames = config.getLanguageNames()
+    
+    -- Title
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.setFont(TITLE_FONT)
+    love.graphics.printf("Select Languages to Install", 0, 40, W, "center")
+    love.graphics.setFont(FONT)
+    
+    -- Language list
+    local y = 100
+    local languageList = {}
+    for i = 0, 6 do
+        if languageNames[i] then
+            table.insert(languageList, {index = i, name = languageNames[i]})
+        end
+    end
+    
+    for i, lang in ipairs(languageList) do
+        local isSelected = uiState.sel == i
+        local isChecked = uiState.selectedLanguages[lang.index] or false
+        
+        if isSelected then
+            love.graphics.setColor(1, 1, 0, 1) -- Yellow highlight
+        else
+            love.graphics.setColor(1, 1, 1, 1)
+        end
+        
+        -- Draw checkbox
+        local checkboxX = 150
+        local checkboxSize = 16
+        love.graphics.rectangle("line", checkboxX, y - 2, checkboxSize, checkboxSize)
+        
+        if isChecked then
+            love.graphics.rectangle("fill", checkboxX + 3, y + 1, checkboxSize - 6, checkboxSize - 6)
+        end
+        
+        -- Draw language name
+        love.graphics.print(lang.name, checkboxX + checkboxSize + 10, y)
+        
+        y = y + 25
+    end
+    
+    -- Instructions
+    love.graphics.setColor(0.7, 0.7, 0.7, 1)
+    local instructY = 380
+    drawButton(100, instructY, "A", "Toggle Selection")
+    drawButton(100, instructY + 30, "X", "Begin Installation")
+    drawButton(100, instructY + 60, "B", "Cancel")
+end
+
+-- Draw the installing screen
+local function drawInstalling(uiState)
+    local W, H = 640, 480
+    
+    -- Title
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.setFont(TITLE_FONT)
+    if uiState.installInProgress then
+        love.graphics.printf("Installing Max Payne...", 0, 40, W, "center")
+    elseif uiState.installFailed then
+        love.graphics.setColor(1, 0, 0, 1)
+        love.graphics.printf("Installation Failed", 0, 40, W, "center")
+    else
+        love.graphics.setColor(0, 1, 0, 1)
+        love.graphics.printf("Installation Complete!", 0, 40, W, "center")
+    end
+    love.graphics.setFont(FONT)
+    
+    -- Log display (last 10 lines)
+    love.graphics.setColor(1, 1, 1, 1)
+    local logLines = {}
+    for line in uiState.installLog:gmatch("[^\n]+") do
+        table.insert(logLines, line)
+    end
+    
+    local startLine = math.max(1, #logLines - 9)
+    local y = 100
+    for i = startLine, #logLines do
+        local line = logLines[i]
+        if #line > 75 then
+            line = line:sub(1, 72) .. "..."
+        end
+        love.graphics.print(line, 50, y)
+        y = y + 18
+        if y > 350 then
+            break
+        end
+    end
+    
+    -- Instructions
+    love.graphics.setColor(0.7, 0.7, 0.7, 1)
+    if not uiState.installInProgress then
+        if uiState.installFailed then
+            drawButton(100, 400, "B", "Exit")
+        else
+            drawButton(100, 400, "A", "Continue")
+        end
+    end
+end
+
+-- Draw the no files error screen
+local function drawNoFiles(uiState)
+    local W, H = 640, 480
+    
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.setFont(TITLE_FONT)
+    love.graphics.printf("Max Payne Not Found", 0, 150, W, "center")
+    
+    love.graphics.setFont(FONT)
+    love.graphics.setColor(0.9, 0.9, 0.9, 1)
+    
+    -- Get current working directory
+    local cwd = love.filesystem.getWorkingDirectory()
+    local message = string.format("Place Max Payne Mobile (1.7 or newer) APK and OBB files inside:\n\n%s", cwd)
+    
+    love.graphics.printf(message, 50, 200, W - 100, "center")
+    
+    -- Instructions
+    love.graphics.setColor(0.7, 0.7, 0.7, 1)
+    drawButton(220, 380, "B", "Exit")
 end
 
 -- Draw the config screen
@@ -317,6 +492,12 @@ function ui.draw(uiState, config, launcherOptions)
         drawConfig(uiState, config)
     elseif uiState.mode == "controls" then
         drawControls(uiState)
+    elseif uiState.mode == "install_language_select" then
+        drawInstallLanguageSelect(uiState, config)
+    elseif uiState.mode == "installing" then
+        drawInstalling(uiState)
+    elseif uiState.mode == "no_files" then
+        drawNoFiles(uiState)
     end
 
     -- Draw message overlay

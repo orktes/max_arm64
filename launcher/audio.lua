@@ -94,6 +94,7 @@ function audio.playMenuSound(soundType)
         audioSource:stop()
         audioSource:play()
     end
+    -- Silently ignore if audio source is not available
 end
 
 function audio.startBackgroundMusic()

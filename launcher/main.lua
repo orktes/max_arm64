@@ -10,10 +10,17 @@ local appState = {
     edit = false,
     message = "",
     message_t = 0,
-    mode = "launcher"
+    mode = "launcher",
+    selectedLanguages = {},
+    installLog = "",
+    installInProgress = false,
+    installFailed = false,
+    showInstallOption = false,
+    gameInstalled = false
 }
 
 local launcherOptions = {"Start Game", "Settings", "Controls"}
+local installOptions = {"Install Max Payne"}
 
 -- Utility functions
 local function clamp(v, a, b)
@@ -25,6 +32,60 @@ local function setMessage(msg, time)
     appState.message_t = time
 end
 
+local function fileExists(path)
+    local f = io.open(path, "r")
+    if f then
+        f:close()
+        return true
+    end
+    return false
+end
+
+local function isAPKOrOBBPresent()
+    --- Check if there is a file that ends with .apk or .obb in the current directory
+    local p = io.popen('ls *.apk *.obb 2> /dev/null')
+    local result = p:read('*a')
+    p:close()
+    if result ~= "" then
+        return true
+    end
+    return false
+end
+
+local function isGameInstalledCorrectly()
+    -- Check for libMaxPayne.so in current directory
+    if not fileExists("libMaxPayne.so") then
+        return false, "libMaxPayne.so not found in current directory"
+    end
+    
+    -- Check for gamedata directory
+    if not fileExists("gamedata") then
+        return false, "gamedata directory not found"
+    end
+    
+    -- Required game data files (matching src/main.c check_data function)
+    local requiredFiles = {
+        "gamedata/MaxPayneSoundsv2.msf",
+        "gamedata/x_data.ras",
+        "gamedata/x_english.ras", 
+        "gamedata/x_level1.ras",
+        "gamedata/x_level2.ras",
+        "gamedata/x_level3.ras",
+        "gamedata/data",
+        "gamedata/es2",
+        "gamedata/es2/DefaultPixel.txt"  -- This indicates assets folder has been merged
+    }
+    
+    -- Check each required file/directory
+    for _, file in ipairs(requiredFiles) do
+        if not fileExists(file) then
+            return false, "Missing required file: " .. file
+        end
+    end
+    
+    return true, "Game installation verified successfully"
+end
+
 -- Game control functions
 local function launchGame()
     love.event.quit(0)
@@ -32,9 +93,17 @@ end
 
 local function moveSel(delta)
     if appState.mode == "launcher" then
-        appState.sel = clamp(appState.sel + delta, 1, #launcherOptions)
+        local options = appState.showInstallOption and installOptions or launcherOptions
+        appState.sel = clamp(appState.sel + delta, 1, #options)
     elseif appState.mode == "config" then
         appState.sel = clamp(appState.sel + delta, 1, #config.getOrder())
+    elseif appState.mode == "install_language_select" then
+        local languageNames = config.getLanguageNames()
+        local languageCount = 0
+        for _ in pairs(languageNames) do
+            languageCount = languageCount + 1
+        end
+        appState.sel = clamp(appState.sel + delta, 1, languageCount)
     end
     audio.playMenuSound("move")
 end
@@ -99,6 +168,97 @@ local function returnDefaultConfigs()
     setMessage("Restored default settings", 2.0)
 end
 
+local function enterInstallLanguageSelect()
+    audio.playMenuSound("select")
+    appState.mode = "install_language_select"
+    appState.sel = 1
+    -- Initialize selected languages with English enabled by default
+    appState.selectedLanguages = {[0] = true} -- English is index 0
+end
+
+local function toggleLanguageSelection()
+    local languageNames = config.getLanguageNames()
+    local languageIndex = appState.sel - 1 -- Convert 1-based to 0-based
+    appState.selectedLanguages[languageIndex] = not appState.selectedLanguages[languageIndex]
+    audio.playMenuSound("select")
+end
+
+local function startInstallation()
+    audio.playMenuSound("select")
+    appState.mode = "installing"
+    appState.installLog = ""
+    appState.installInProgress = true
+    appState.installFailed = false
+    
+    -- Build language arguments using language names
+    local languageArgs = {}
+    local languageNames = config.getLanguageNames()
+    for langIndex, selected in pairs(appState.selectedLanguages) do
+        if selected and languageNames[langIndex] then
+            table.insert(languageArgs, languageNames[langIndex])
+        end
+    end
+    
+    -- Check for patchscript location (dev vs production)
+    local patchscriptPath = nil
+    if fileExists("port/tools/patchscript") then
+        patchscriptPath = "port/tools/patchscript"
+    elseif fileExists("tools/patchscript") then
+        patchscriptPath = "tools/patchscript"
+    end
+    
+    if not patchscriptPath then
+        appState.installLog = "Error: patchscript not found in port/tools/ or tools/"
+        appState.installInProgress = false
+        appState.installFailed = true
+        return
+    end
+    
+    -- Start the installation process
+    local handle = io.popen("bash " .. patchscriptPath .. " " .. table.concat(languageArgs, " ") .. " 2>&1", "r")
+    if handle then
+        appState.installHandle = handle
+    else
+        appState.installLog = "Failed to start installation script"
+        appState.installInProgress = false
+        appState.installFailed = true
+    end
+end
+
+local function cancelInstallation()
+    appState.mode = "launcher"
+    appState.sel = 1
+    appState.selectedLanguages = {}
+end
+
+local function finishInstallation()
+    if not appState.installFailed then
+        -- Reinitialize audio and UI to load new resources
+        audio.cleanup()
+        ui.cleanup()
+        ui.initialize()
+        audio.initialize()
+        
+        -- Recheck installation state
+        appState.showInstallOption = isAPKOrOBBPresent()
+        appState.gameInstalled = isGameInstalledCorrectly()
+        
+        -- If neither APK/OBB nor game installed, show error mode
+        if not appState.showInstallOption and not appState.gameInstalled then
+            appState.mode = "no_files"
+        else
+            appState.mode = "launcher"
+        end
+    else
+        appState.mode = "launcher"
+    end
+    
+    appState.sel = 1
+    appState.installLog = ""
+    appState.installInProgress = false
+    appState.installFailed = false
+end
+
 -- Love2D callbacks
 function love.load()
     love.window.setTitle("Max Payne")
@@ -106,6 +266,17 @@ function love.load()
         resizable = true,
         vsync = 1
     })
+
+    -- Check once if APK/OBB files are present
+    appState.showInstallOption = isAPKOrOBBPresent()
+    
+    -- Check if game is installed correctly
+    appState.gameInstalled = isGameInstalledCorrectly()
+    
+    -- If neither APK/OBB nor game installed, show error mode
+    if not appState.showInstallOption and not appState.gameInstalled then
+        appState.mode = "no_files"
+    end
 
     -- Initialize modules
     ui.initialize()
@@ -125,7 +296,12 @@ function love.load()
         loadConfig = loadConfig,
         enterEdit = enterEdit,
         returnDefaultConfigs = returnDefaultConfigs,
-        exitEdit = exitEdit
+        exitEdit = exitEdit,
+        enterInstallLanguageSelect = enterInstallLanguageSelect,
+        toggleLanguageSelection = toggleLanguageSelection,
+        startInstallation = startInstallation,
+        cancelInstallation = cancelInstallation,
+        finishInstallation = finishInstallation
     })
 
     -- Load initial config
@@ -140,6 +316,22 @@ end
 function love.update(dt)
     -- Store order in appState for input module
     appState.order = config.getOrder()
+
+    -- Handle installation log updates
+    if appState.installInProgress and appState.installHandle then
+        local line = appState.installHandle:read("*l")
+        if line then
+            appState.installLog = appState.installLog .. line .. "\n"
+        else
+            -- Process finished
+            local success = appState.installHandle:close()
+            appState.installHandle = nil
+            appState.installInProgress = false
+            if not success then
+                appState.installFailed = true
+            end
+        end
+    end
 
     input.update(dt, appState, config.getOrder())
     audio.update(dt)
