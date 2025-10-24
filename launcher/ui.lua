@@ -261,8 +261,12 @@ local function drawInstallLanguageSelect(uiState, config)
     local W, H = 640, 480
     local languageNames = config.getLanguageNames()
     
-    -- Title
+    -- Semi-transparent background overlay
+    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.rectangle("fill", 0, 0, W, H)
     love.graphics.setColor(1, 1, 1, 1)
+    
+    -- Title
     love.graphics.setFont(TITLE_FONT)
     love.graphics.printf("Select Languages to Install", 0, 40, W, "center")
     love.graphics.setFont(FONT)
@@ -313,8 +317,12 @@ end
 local function drawInstalling(uiState)
     local W, H = 640, 480
     
-    -- Title
+    -- Semi-transparent background overlay
+    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.rectangle("fill", 0, 0, W, H)
     love.graphics.setColor(1, 1, 1, 1)
+    
+    -- Title
     love.graphics.setFont(TITLE_FONT)
     if uiState.installInProgress then
         love.graphics.printf("Installing Max Payne...", 0, 40, W, "center")
@@ -377,7 +385,11 @@ end
 local function drawNoFiles(uiState)
     local W, H = 640, 480
     
+    -- Semi-transparent background overlay
+    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.rectangle("fill", 0, 0, W, H)
     love.graphics.setColor(1, 1, 1, 1)
+    
     love.graphics.setFont(TITLE_FONT)
     love.graphics.printf("Max Payne Gamedata Not Found", 0, 100, W, "center")
     
