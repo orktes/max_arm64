@@ -42,6 +42,17 @@ local function fileExists(path)
     return false
 end
 
+local function cleanLogLine(line)
+    -- Get current working directory
+    local cwd = love.filesystem.getWorkingDirectory()
+    
+    -- Remove CWD + /.apktemp or /.obbtemp from paths
+    line = line:gsub(cwd .. "/%.apktemp/", "")
+    line = line:gsub(cwd .. "/%.obbtemp/", "")
+    
+    return line
+end
+
 local function fileIsDirectory(path)
     local f = io.open(path, "r")
     if f then
@@ -363,7 +374,7 @@ function love.update(dt)
     if appState.installInProgress and appState.installHandle then
         local line = appState.installHandle:read("*l")
         if line then
-            appState.installLog = appState.installLog .. line .. "\n"
+            appState.installLog = appState.installLog .. cleanLogLine(line) .. "\n"
         else
             -- Process finished
             local success = appState.installHandle:close()
