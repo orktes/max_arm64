@@ -327,8 +327,14 @@ local function drawInstalling(uiState)
     end
     love.graphics.setFont(FONT)
     
+    -- Info message about installation time
+    if uiState.installInProgress then
+        love.graphics.setColor(0.8, 0.8, 0.5, 1) -- Yellowish
+        love.graphics.printf("This may take 5-10 minutes. Good time for a coffee break!", 50, 75, W - 100, "center")
+    end
+    
     -- Calculate available space for log lines
-    local logStartY = 100
+    local logStartY = uiState.installInProgress and 100 or 100
     local logEndY = 400 -- Leave space for buttons at bottom
     local lineHeight = 18
     local availableHeight = logEndY - logStartY
