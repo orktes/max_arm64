@@ -156,6 +156,70 @@ local languageNames = {
     [6] = "German"
 }
 
+-- Cache for language availability (checked once at startup)
+local languageAvailability = {}
+
+-- Check if language MSF file exists (version-independent)
+local function findLanguageMSFFile(langIndex)
+    if langIndex == 0 then
+        -- English base file
+        local f = io.open("gamedata/MaxPayneSoundsv2.msf", "r")
+        if f then
+            f:close()
+            return true
+        end
+        return false
+    end
+    
+    local langName = languageNames[langIndex]
+    if not langName then
+        return false
+    end
+    
+    -- Check for any version of the language file using ls
+    local pattern = "gamedata/MaxPayneSounds" .. langName .. "v*.msf"
+    local handle = io.popen("ls " .. pattern .. " 2>/dev/null")
+    if handle then
+        local result = handle:read("*a")
+        handle:close()
+        return result ~= ""
+    end
+    
+    return false
+end
+
+-- Check if language file exists (cached)
+local function isLanguageInstalled(langIndex)
+    -- Check cache first
+    if languageAvailability[langIndex] ~= nil then
+        return languageAvailability[langIndex]
+    end
+    
+    -- Check if language file exists
+    local exists = findLanguageMSFFile(langIndex)
+    languageAvailability[langIndex] = exists
+    return exists
+end
+
+-- Refresh language availability cache (call after installation)
+local function refreshLanguageCache()
+    languageAvailability = {}
+    for i = 0, 6 do
+        isLanguageInstalled(i) -- This will populate the cache
+    end
+end
+
+-- Get max language index that is installed
+local function getMaxInstalledLanguage()
+    local maxLang = 0
+    for i = 0, 6 do
+        if isLanguageInstalled(i) then
+            maxLang = i
+        end
+    end
+    return maxLang
+end
+
 local shadowNames = {
     [0] = "OFF",
     [1] = "Blob",
@@ -259,6 +323,12 @@ function config.load()
         local data = file:read("*a")
         file:close()
         parseConfigText(data)
+        
+        -- Validate language setting - if selected language is not installed, fall back to English
+        if not isLanguageInstalled(settings.language) then
+            settings.language = 0 -- Fall back to English
+        end
+        
         return "Loaded config.txt", 1.5
     else
         local file = io.open(FILE_PATH, "w")
@@ -290,8 +360,29 @@ function config.adjustValue(key, dir)
     end
 
     if m.type == "int" then
-        settings[key] = clamp(settings[key] + (dir * m.step), m.min, m.max)
-        return true
+        if key == "language" then
+            -- Special handling for language: skip unavailable languages
+            local newVal = settings[key] + (dir * m.step)
+            local maxLang = getMaxInstalledLanguage()
+            
+            -- Keep looping until we find an installed language or wrap around
+            local attempts = 0
+            while attempts < 7 do -- Max 7 languages
+                newVal = clamp(newVal, m.min, maxLang)
+                if isLanguageInstalled(newVal) then
+                    settings[key] = newVal
+                    return true
+                end
+                newVal = newVal + (dir * m.step)
+                attempts = attempts + 1
+            end
+            
+            -- If no valid language found, keep current
+            return false
+        else
+            settings[key] = clamp(settings[key] + (dir * m.step), m.min, m.max)
+            return true
+        end
     elseif m.type == "float" then
         local v = settings[key] + (dir * m.step)
         v = clamp(v, m.min, m.max)
@@ -331,6 +422,10 @@ function config.formatValue(key)
     else
         return val
     end
+end
+
+function config.refreshLanguageCache()
+    refreshLanguageCache()
 end
 
 return config

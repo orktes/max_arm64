@@ -327,23 +327,31 @@ local function drawInstalling(uiState)
     end
     love.graphics.setFont(FONT)
     
-    -- Log display (last 10 lines)
+    -- Calculate available space for log lines
+    local logStartY = 100
+    local logEndY = 400 -- Leave space for buttons at bottom
+    local lineHeight = 18
+    local availableHeight = logEndY - logStartY
+    local maxVisibleLines = math.floor(availableHeight / lineHeight)
+    
+    -- Log display (as many lines as can fit)
     love.graphics.setColor(1, 1, 1, 1)
     local logLines = {}
     for line in uiState.installLog:gmatch("[^\n]+") do
         table.insert(logLines, line)
     end
     
-    local startLine = math.max(1, #logLines - 9)
-    local y = 100
+    -- Show last N lines that fit in the window
+    local startLine = math.max(1, #logLines - maxVisibleLines + 1)
+    local y = logStartY
     for i = startLine, #logLines do
         local line = logLines[i]
         if #line > 75 then
             line = line:sub(1, 72) .. "..."
         end
         love.graphics.print(line, 50, y)
-        y = y + 18
-        if y > 350 then
+        y = y + lineHeight
+        if y >= logEndY then
             break
         end
     end
@@ -365,20 +373,27 @@ local function drawNoFiles(uiState)
     
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.setFont(TITLE_FONT)
-    love.graphics.printf("Max Payne Not Found", 0, 150, W, "center")
+    love.graphics.printf("Max Payne Gamedata Not Found", 0, 100, W, "center")
     
     love.graphics.setFont(FONT)
+    love.graphics.setColor(1, 0.4, 0.4, 1) -- Light red for error
+    
+    -- Display the error message from isGameInstalledCorrectly
+    local errorMsg = uiState.installError or "Game files are missing or incomplete"
+    love.graphics.printf(errorMsg, 50, 180, W - 100, "center")
+    
     love.graphics.setColor(0.9, 0.9, 0.9, 1)
     
     -- Get current working directory
     local cwd = love.filesystem.getWorkingDirectory()
-    local message = string.format("Place Max Payne Mobile (1.7 or newer) APK and OBB files inside:\n\n%s", cwd)
+    local message = string.format("\n\nPlace Max Payne Mobile (1.7 or newer) APK and OBB files inside:\n\n%s", cwd)
     
-    love.graphics.printf(message, 50, 200, W - 100, "center")
+    love.graphics.printf(message, 50, 220, W - 100, "center")
     
     -- Instructions
     love.graphics.setColor(0.7, 0.7, 0.7, 1)
-    drawButton(220, 380, "B", "Exit")
+    drawButton(180, 380, "A", "Recheck Files")
+    drawButton(180, 410, "B", "Exit")
 end
 
 -- Draw the config screen

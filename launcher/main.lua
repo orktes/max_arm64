@@ -16,7 +16,8 @@ local appState = {
     installInProgress = false,
     installFailed = false,
     showInstallOption = false,
-    gameInstalled = false
+    gameInstalled = false,
+    installError = ""
 }
 
 local launcherOptions = {"Start Game", "Settings", "Controls"}
@@ -41,6 +42,18 @@ local function fileExists(path)
     return false
 end
 
+local function fileIsDirectory(path)
+    local f = io.open(path, "r")
+    if f then
+        local ok, err, code = f:read(1)
+        f:close()
+        if code == 21 then -- EISDIR
+            return true
+        end
+    end
+    return false
+end
+
 local function isAPKOrOBBPresent()
     --- Check if there is a file that ends with .apk or .obb in the current directory
     local p = io.popen('ls *.apk *.obb 2> /dev/null')
@@ -58,11 +71,6 @@ local function isGameInstalledCorrectly()
         return false, "libMaxPayne.so not found in current directory"
     end
     
-    -- Check for gamedata directory
-    if not fileExists("gamedata") then
-        return false, "gamedata directory not found"
-    end
-    
     -- Required game data files (matching src/main.c check_data function)
     local requiredFiles = {
         "gamedata/MaxPayneSoundsv2.msf",
@@ -78,8 +86,8 @@ local function isGameInstalledCorrectly()
     
     -- Check each required file/directory
     for _, file in ipairs(requiredFiles) do
-        if not fileExists(file) then
-            return false, "Missing required file: " .. file
+        if not fileExists(file) and not fileIsDirectory(file) then
+            return false, "Missing required file or directory: " .. file
         end
     end
     
@@ -147,6 +155,32 @@ end
 
 local function exitApp()
     love.event.quit(1)
+end
+
+local function recheckGameFiles()
+    audio.playMenuSound("select")
+    
+    -- Recheck installation state
+    appState.showInstallOption = isAPKOrOBBPresent()
+    local installed, errorMsg = isGameInstalledCorrectly()
+    appState.gameInstalled = installed
+    appState.installError = errorMsg or ""
+    
+    -- Update mode based on what we found
+    if appState.gameInstalled then
+        -- Game is now properly installed, go to launcher
+        appState.mode = "launcher"
+        appState.sel = 1
+        setMessage("Game files detected!", 2.0)
+    elseif appState.showInstallOption then
+        -- APK/OBB found, show install option
+        appState.mode = "launcher"
+        appState.sel = 1
+        setMessage("Installation files found", 2.0)
+    else
+        -- Still nothing found
+        setMessage("No game files found", 2.0)
+    end
 end
 
 local function saveAndExit()
@@ -239,9 +273,14 @@ local function finishInstallation()
         ui.initialize()
         audio.initialize()
         
+        -- Refresh language availability cache
+        config.refreshLanguageCache()
+        
         -- Recheck installation state
         appState.showInstallOption = isAPKOrOBBPresent()
-        appState.gameInstalled = isGameInstalledCorrectly()
+        local installed, errorMsg = isGameInstalledCorrectly()
+        appState.gameInstalled = installed
+        appState.installError = errorMsg or ""
         
         -- If neither APK/OBB nor game installed, show error mode
         if not appState.showInstallOption and not appState.gameInstalled then
@@ -271,7 +310,9 @@ function love.load()
     appState.showInstallOption = isAPKOrOBBPresent()
     
     -- Check if game is installed correctly
-    appState.gameInstalled = isGameInstalledCorrectly()
+    local installed, errorMsg = isGameInstalledCorrectly()
+    appState.gameInstalled = installed
+    appState.installError = errorMsg or ""
     
     -- If neither APK/OBB nor game installed, show error mode
     if not appState.showInstallOption and not appState.gameInstalled then
@@ -301,7 +342,8 @@ function love.load()
         toggleLanguageSelection = toggleLanguageSelection,
         startInstallation = startInstallation,
         cancelInstallation = cancelInstallation,
-        finishInstallation = finishInstallation
+        finishInstallation = finishInstallation,
+        recheckGameFiles = recheckGameFiles
     })
 
     -- Load initial config

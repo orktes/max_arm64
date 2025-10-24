@@ -247,7 +247,11 @@ function input.gamepadPressed(joy, button, ui, launcherOptions)
     end
 
     if ui.mode == "no_files" then
-        if button == "b" or button == "back" then
+        if button == "a" then
+            if callbacks.recheckGameFiles then
+                callbacks.recheckGameFiles()
+            end
+        elseif button == "b" or button == "back" then
             if callbacks.exitApp then
                 callbacks.exitApp()
             end
@@ -413,7 +417,11 @@ function input.keyPressed(key, ui, launcherOptions)
     end
 
     if ui.mode == "no_files" then
-        if key == "escape" then
+        if key == "return" or key == "space" then
+            if callbacks.recheckGameFiles then
+                callbacks.recheckGameFiles()
+            end
+        elseif key == "escape" then
             if callbacks.exitApp then
                 callbacks.exitApp()
             end
