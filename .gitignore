@@ -19,3 +19,6 @@ archive/
 Makefile
 conf/
 VERSION.txt
+LAST_PATCH_VERSION.txt
+libMaxPayne.so
+patchlog.txt

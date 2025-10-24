@@ -2,6 +2,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(MaxPayneWrapper VERSION 1.0.0 LANGUAGES C CXX)
 
+set(TEST_DEVICE_IP 192.168.88.97)
+set(TEST_DEVICE_SH_PATH /roms/ports/)
+set(TEST_DEVICE_GAME_PATH /roms/ports/maxpayne/)
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -84,7 +88,7 @@ add_custom_target(package
     COMMAND ${CMAKE_COMMAND} -E copy "port/screenshot.png" "package/screenshot.png"
     COMMAND ${CMAKE_COMMAND} -E make_directory package/maxpayne/tools
     COMMAND ${CMAKE_COMMAND} -E copy "port/tools/patchscript" "package/maxpayne/tools/patchscript"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "launcher" "package/maxpayne/launcher"
+    COMMAND /bin/sh -c '(cd launcher && zip -9 -r ../package/maxpayne/launcher.love .)'
     COMMAND /bin/sh -c './scripts/generate_version_string.sh > package/maxpayne/VERSION.txt'
     COMMAND /bin/sh -c './scripts/generate_port_json.sh > package/port.json'
     COMMAND /bin/sh -c './scripts/generate_port_readme.sh > package/README.md'
@@ -103,7 +107,7 @@ add_custom_target(archive
 )
 
 add_custom_target(upload-to-device
-    COMMAND ./scripts/build_and_upload.sh 192.168.88.97
+    COMMAND ./scripts/build_and_upload.sh ${TEST_DEVICE_IP} ${TEST_DEVICE_GAME_PATH} ${TEST_DEVICE_SH_PATH}
 )
 
 message(STATUS "Build configuration:")
