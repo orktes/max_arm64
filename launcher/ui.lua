@@ -258,17 +258,18 @@ end
 
 -- Draw the install language selection screen
 local function drawInstallLanguageSelect(uiState, config)
-    local W, H = 640, 480
+    local W, H = love.graphics.getDimensions()
+    local scale = math.min(W / 640, H / 480)
     local languageNames = config.getLanguageNames()
     
     -- Semi-transparent background overlay
     love.graphics.setColor(0, 0, 0, 0.6)
-    love.graphics.rectangle("fill", 0, 0, W, H)
+    love.graphics.rectangle("fill", 0, 0, W / scale, H / scale)
     love.graphics.setColor(1, 1, 1, 1)
     
     -- Title
     love.graphics.setFont(TITLE_FONT)
-    love.graphics.printf("Select Languages to Install", 0, 40, W, "center")
+    love.graphics.printf("Select Languages to Install", 0, 40, 640, "center")
     love.graphics.setFont(FONT)
     
     -- Language list
@@ -315,30 +316,31 @@ end
 
 -- Draw the installing screen
 local function drawInstalling(uiState)
-    local W, H = 640, 480
+    local W, H = love.graphics.getDimensions()
+    local scale = math.min(W / 640, H / 480)
     
     -- Semi-transparent background overlay
     love.graphics.setColor(0, 0, 0, 0.6)
-    love.graphics.rectangle("fill", 0, 0, W, H)
+    love.graphics.rectangle("fill", 0, 0, W / scale, H / scale)
     love.graphics.setColor(1, 1, 1, 1)
     
     -- Title
     love.graphics.setFont(TITLE_FONT)
     if uiState.installInProgress then
-        love.graphics.printf("Installing Max Payne...", 0, 40, W, "center")
+        love.graphics.printf("Installing Max Payne...", 0, 40, 640, "center")
     elseif uiState.installFailed then
         love.graphics.setColor(1, 0, 0, 1)
-        love.graphics.printf("Installation Failed", 0, 40, W, "center")
+        love.graphics.printf("Installation Failed", 0, 40, 640, "center")
     else
         love.graphics.setColor(0, 1, 0, 1)
-        love.graphics.printf("Installation Complete!", 0, 40, W, "center")
+        love.graphics.printf("Installation Complete!", 0, 40, 640, "center")
     end
     love.graphics.setFont(FONT)
     
     -- Info message about installation time
     if uiState.installInProgress then
         love.graphics.setColor(0.8, 0.8, 0.5, 1) -- Yellowish
-        love.graphics.printf("This may take 5-10 minutes. Good time for a coffee break!", 50, 75, W - 100, "center")
+        love.graphics.printf("This may take 5-10 minutes. Good time for a coffee break!", 50, 75, 540, "center")
     end
     
     -- Calculate available space for log lines
@@ -383,22 +385,23 @@ end
 
 -- Draw the no files error screen
 local function drawNoFiles(uiState)
-    local W, H = 640, 480
+    local W, H = love.graphics.getDimensions()
+    local scale = math.min(W / 640, H / 480)
     
     -- Semi-transparent background overlay
     love.graphics.setColor(0, 0, 0, 0.6)
-    love.graphics.rectangle("fill", 0, 0, W, H)
+    love.graphics.rectangle("fill", 0, 0, W / scale, H / scale)
     love.graphics.setColor(1, 1, 1, 1)
     
     love.graphics.setFont(TITLE_FONT)
-    love.graphics.printf("Max Payne Gamedata Not Found", 0, 100, W, "center")
+    love.graphics.printf("Max Payne Gamedata Not Found", 0, 100, 640, "center")
     
     love.graphics.setFont(FONT)
     love.graphics.setColor(1, 0.4, 0.4, 1) -- Light red for error
     
     -- Display the error message from isGameInstalledCorrectly
     local errorMsg = uiState.installError or "Game files are missing or incomplete"
-    love.graphics.printf(errorMsg, 50, 180, W - 100, "center")
+    love.graphics.printf(errorMsg, 50, 180, 540, "center")
     
     love.graphics.setColor(0.9, 0.9, 0.9, 1)
     
@@ -406,7 +409,7 @@ local function drawNoFiles(uiState)
     local cwd = love.filesystem.getWorkingDirectory()
     local message = string.format("\n\nPlace Max Payne Mobile (1.7 or newer) APK and OBB files inside:\n\n%s", cwd)
     
-    love.graphics.printf(message, 50, 220, W - 100, "center")
+    love.graphics.printf(message, 50, 220, 540, "center")
     
     -- Instructions
     love.graphics.setColor(0.7, 0.7, 0.7, 1)
