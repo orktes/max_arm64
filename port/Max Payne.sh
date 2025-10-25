@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -o xtrace
+
 XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
 
 if [ -d "/opt/system/Tools/PortMaster/" ]; then
@@ -28,9 +30,6 @@ mkdir -p "$GAMEDIR/conf"
 
 cd $GAMEDIR
 
-export PATCHER_FILE="$GAMEDIR/tools/patchscript"
-export PATCHER_TIME="5 to 10 minutes"
-
 last_patch_version=$(cat "$GAMEDIR/LAST_PATCH_VERSION.txt" 2>/dev/null || echo "")
 current_version=$(cat "$GAMEDIR/VERSION.txt" 2>/dev/null || echo "")
 
@@ -49,6 +48,15 @@ pm_message "Starting Launcher"
 
 # Remove debug log
 rm -f "debug.log"
+
+if [ "$CFW_NAME" == "knulli" ] && [ -f "$SDL_GAMECONTROLLERCONFIG_FILE" ];then
+    echo "Swapping a/b and x/y buttons"
+    $ESUDO chmod +x $GAMEDIR/tools/swapabxy.py
+    cat "$SDL_GAMECONTROLLERCONFIG_FILE" | $GAMEDIR/tools/swapabxy.py > "$GAMEDIR/gamecontrollerdb_swapped.txt"
+    export SDL_GAMECONTROLLERCONFIG_FILE="$GAMEDIR/gamecontrollerdb_swapped.txt"
+    export SDL_GAMECONTROLLERCONFIG="$(echo "$SDL_GAMECONTROLLERCONFIG" | $GAMEDIR/tools/swapabxy.py)"
+fi
+
 
 $GPTOKEYB "$LOVE_GPTK" &
 launcherGPTOKEYBPid=$!
