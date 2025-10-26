@@ -17,7 +17,8 @@ local appState = {
     installFailed = false,
     showInstallOption = false,
     gameInstalled = false,
-    installError = ""
+    installError = "",
+    configScrollOffset = 0
 }
 
 local launcherOptions = {"Start Game", "Settings", "Controls"}
@@ -115,7 +116,25 @@ local function moveSel(delta)
         local options = appState.showInstallOption and installOptions or launcherOptions
         appState.sel = clamp(appState.sel + delta, 1, #options)
     elseif appState.mode == "config" then
-        appState.sel = clamp(appState.sel + delta, 1, #config.getOrder())
+        local order = config.getOrder()
+        appState.sel = clamp(appState.sel + delta, 1, #order)
+        
+        -- Calculate scrolling for config view
+        -- Settings view: starts at y=50, item height=28, bottom margin=50, button area=50
+        -- Available height: 480 - 50 (top) - 50 (bottom) - 50 (buttons) = 330
+        local maxVisibleItems = math.floor(330 / 28) -- ~11 items visible
+        
+        -- Adjust scroll offset to keep selected item visible
+        if appState.sel > appState.configScrollOffset + maxVisibleItems then
+            -- Scrolling down: selected item goes off bottom
+            appState.configScrollOffset = appState.sel - maxVisibleItems
+        elseif appState.sel <= appState.configScrollOffset then
+            -- Scrolling up: selected item goes off top
+            appState.configScrollOffset = appState.sel - 1
+        end
+        
+        -- Clamp scroll offset
+        appState.configScrollOffset = math.max(0, math.min(appState.configScrollOffset, #order - maxVisibleItems))
     elseif appState.mode == "install_language_select" then
         local languageNames = config.getLanguageNames()
         local languageCount = 0
@@ -125,6 +144,18 @@ local function moveSel(delta)
         appState.sel = clamp(appState.sel + delta, 1, languageCount)
     end
     audio.playMenuSound("move")
+    
+    -- Vibrate gamepad if rumble is enabled
+    local settings = config.getSettings()
+    if settings.use_rumble == 1 then
+        local joysticks = love.joystick.getJoysticks()
+        for _, joystick in ipairs(joysticks) do
+            if joystick:isVibrationSupported() then
+                -- Short, light vibration for menu navigation
+                joystick:setVibration(0.3, 0.3, 0.05) -- left, right, duration
+            end
+        end
+    end
 end
 
 local function adjustValue(key, dir)
@@ -156,6 +187,7 @@ local function enterSettings()
     audio.playMenuSound("select")
     appState.mode = "config"
     appState.sel = 1
+    appState.configScrollOffset = 0
 end
 
 local function enterControls()

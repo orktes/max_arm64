@@ -58,6 +58,7 @@ static uint8_t fake_tls[0x100];
 // GameController and input state
 static int gamecontroller_initialized = 0;
 static SDL_GameController *gamecontroller = NULL;
+static int gamecontroller_supports_rumble = 0;
 
 static int r1_pressed = 0;
 
@@ -100,6 +101,15 @@ static void init_gamecontroller(void) {
   }
 
   gamecontroller_initialized = 1;
+  gamecontroller_supports_rumble = gamecontroller &&
+                                  SDL_GameControllerHasRumble(
+                                      gamecontroller) == SDL_TRUE;
+
+  if (gamecontroller_supports_rumble) {
+    debugPrintf("INPUT DEBUG: Gamecontroller supports rumble\n");
+  } else {
+    debugPrintf("INPUT DEBUG: Gamecontroller does not support rumble\n");
+  }
 }
 
 // Safe hook that checks if symbol exists before hooking
@@ -522,6 +532,29 @@ int MaxPayne_ConfiguredInput_readShoot(void *this) {
   return r1_pressed; // shoot while R1 is held
 }
 
+void VibratePhone(int duration_ms) {
+  debugPrintf("VibratePhone called with duration %d ms (not implemented)\n",
+              duration_ms);
+}
+
+// 
+void Mobile_Vibrate(int duration_ms) {
+  if (!gamecontroller_initialized) {
+    return;
+  }
+
+  if (!gamecontroller) {
+    return;
+  }
+
+  if (gamecontroller_supports_rumble == 0) {
+    return;
+  }
+
+  debugPrintf("Mobile_Vibrate called with duration %d ms\n", duration_ms);
+  SDL_GameControllerRumble(gamecontroller, 0xFFFF, 0xFFFF, duration_ms);
+}
+
 int GetAndroidCurrentLanguage(void) {
   debugPrintf("GetAndroidCurrentLanguage: returning %d\n", config.language);
   // this will be loaded from config.txt; cap it
@@ -740,8 +773,8 @@ void patch_game(void) {
 
   // TODO implement these once we figure out how to do it with R36S (it
   // supports vibrate if hardware hooked up)
-  hook_arm64(so_find_addr("_Z12VibratePhonei"), (uintptr_t)ret0);
-  hook_arm64(so_find_addr("_Z14Mobile_Vibratei"), (uintptr_t)ret0);
+  hook_arm64(so_find_addr("_Z12VibratePhonei"), (uintptr_t)VibratePhone);
+  hook_arm64(so_find_addr("_Z14Mobile_Vibratei"), (uintptr_t)Mobile_Vibrate);
 
   hook_arm64(so_find_addr("_Z15ExitAndroidGamev"), (uintptr_t)ExitAndroidGame);
 

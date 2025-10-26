@@ -18,7 +18,8 @@ local settings = {
     force_widescreen = 0,
     stick_deadzone = 0.1,
     aspect_ratio_x_mult = 1.18,
-    aspect_ratio_y_mult = 0.84
+    aspect_ratio_y_mult = 0.84,
+    use_rumble = 1
 }
 
 local defaultSettings = {}
@@ -137,11 +138,18 @@ local meta = {
         max = 2.0,
         step = 0.01,
         label = "Aspect Y Mult"
+    },
+    use_rumble = {
+        type = "int",
+        min = 0,
+        max = 1,
+        step = 1,
+        label = "Rumble"
     }
 }
 
 -- Display order for settings
-local order = {"stick_deadzone", "force_widescreen", "use_bloom", "trilinear_filter", "disable_mipmaps", "language",
+local order = {"stick_deadzone",  "force_widescreen", "use_bloom", "use_rumble", "trilinear_filter", "disable_mipmaps", "language",
                "character_shadows", "drop_highest_lod", "vsync_enabled", "decal_limit", "debris_limit",
                "aspect_ratio_x_mult", "aspect_ratio_y_mult"}
 
