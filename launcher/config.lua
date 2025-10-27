@@ -102,7 +102,7 @@ local meta = {
     debris_limit = {
         type = "float",
         min = 0.0,
-        max = 3.0,
+        max = 1.0,
         step = 0.01,
         label = "Debris Limit"
     },
@@ -301,6 +301,7 @@ local function serialize()
     push("stick_deadzone", settings.stick_deadzone, "0.0-1.0")
     push("aspect_ratio_x_mult", settings.aspect_ratio_x_mult)
     push("aspect_ratio_y_mult", settings.aspect_ratio_y_mult)
+    push("use_rumble", settings.use_rumble)
     return table.concat(out, "\n") .. "\n"
 end
 
