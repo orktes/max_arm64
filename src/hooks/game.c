@@ -533,8 +533,6 @@ int MaxPayne_ConfiguredInput_readShoot(void *this) {
 }
 
 void VibratePhone(int duration_ms) {
-  debugPrintf("VibratePhone called with duration %d ms (not implemented)\n",
-              duration_ms);
 }
 
 // 
@@ -551,7 +549,6 @@ void Mobile_Vibrate(int duration_ms) {
     return;
   }
 
-  debugPrintf("Mobile_Vibrate called with duration %d ms\n", duration_ms);
   SDL_GameControllerRumble(gamecontroller, 0xFFFF, 0xFFFF, duration_ms);
 }
 
@@ -583,6 +580,47 @@ int R_File_setFileSystemRoot(void *this, const char *root) {
   const int res = R_File_loadArchives(this);
   R_File_enablePriorityArchive(this, config.mod_file);
   return res;
+}
+
+// Hook for R_Throw<R_FileException_ArchiveNotFound> to log missing archives
+// This function is called when the game tries to throw an archive not found exception
+// Since we don't have a trampoline to the original function, we'll log and abort
+static void R_Throw_ArchiveNotFound_hook(const void *exception) {
+  // Always log archive not found exceptions
+  if (exception) {
+    // The exception object has the filename string embedded at offset 48
+    // Based on analysis: the structure appears to be vtable pointers followed by the string
+    const char *archivename = (const char *)exception + 48;
+    debugPrintf("EXCEPTION: ArchiveNotFoundException - Archive: %s\n", archivename);
+  } else {
+    debugPrintf("EXCEPTION: ArchiveNotFoundException - (null exception object)\n");
+  }
+  
+  debugPrintf("ArchiveNotFoundException - game will likely crash\n");
+  abort(); // Terminate since we can't properly forward the exception
+}
+
+// Hook for R_Throw<R_FileException_FileNotFound> to log missing files
+// This function is called when the game tries to throw a file not found exception
+// Since we don't have a trampoline to the original function, we'll log and abort
+static void R_Throw_FileNotFound_hook(const void *exception) {
+  // Always log file not found exceptions
+  if (exception) {
+    // The exception object has a pointer to the error message string at offset 8
+    // The message includes "File <filename> not found"
+    void **ptrs = (void **)exception;
+    if (ptrs[1]) {
+      const char *message = (const char *)ptrs[1];
+      debugPrintf("EXCEPTION: FileNotFoundException - %s\n", message);
+    } else {
+      debugPrintf("EXCEPTION: FileNotFoundException - (null message pointer)\n");
+    }
+  } else {
+    debugPrintf("EXCEPTION: FileNotFoundException - (null exception object)\n");
+  }
+  
+  debugPrintf("FileNotFoundException - game will likely crash\n");
+  abort(); // Terminate since we can't properly forward the exception
 }
 
 int X_DetailLevel_getCharacterShadows(void) { return config.character_shadows; }
@@ -826,4 +864,20 @@ void patch_game(void) {
   deviceChip = (int *)so_find_addr_rx("deviceChip");
   deviceForm = (int *)so_find_addr_rx("deviceForm");
   definedDevice = (int *)so_find_addr_rx("definedDevice");
+  
+  // Hook R_Throw for ArchiveNotFoundException to log missing archives
+  // The actual function template instance for R_Throw<R_FileException_ArchiveNotFound>
+  uintptr_t r_throw_archive_not_found = so_find_addr("_Z7R_ThrowI31R_FileException_ArchiveNotFoundEvRKT_");
+  if (r_throw_archive_not_found) {
+    hook_arm64(r_throw_archive_not_found, (uintptr_t)R_Throw_ArchiveNotFound_hook);
+    debugPrintf("Hooked R_Throw<ArchiveNotFoundException> at 0x%lx\n", r_throw_archive_not_found);
+  }
+  
+  // Hook R_Throw for FileNotFoundException to log missing files
+  // The actual function template instance for R_Throw<R_FileException_FileNotFound>
+  uintptr_t r_throw_file_not_found = so_find_addr("_Z7R_ThrowI28R_FileException_FileNotFoundEvRKT_");
+  if (r_throw_file_not_found) {
+    hook_arm64(r_throw_file_not_found, (uintptr_t)R_Throw_FileNotFound_hook);
+    debugPrintf("Hooked R_Throw<FileNotFoundException> at 0x%lx\n", r_throw_file_not_found);
+  }
 }

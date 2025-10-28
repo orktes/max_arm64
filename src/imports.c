@@ -265,8 +265,6 @@ FILE *fopen_wrapper(const char *filename, const char *mode) {
   if (config.debug_gamedata_mapping) {
     if (!file) {
       debugPrintf("Failed to open file: %s\n", filename);
-    } else {
-      debugPrintf("Opened file: %s\n", filename);
     }
   }
   return file;
