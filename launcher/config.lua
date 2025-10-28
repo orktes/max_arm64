@@ -18,7 +18,9 @@ local settings = {
     force_widescreen = 0,
     stick_deadzone = 0.1,
     aspect_ratio_x_mult = 1.18,
-    aspect_ratio_y_mult = 0.84
+    aspect_ratio_y_mult = 0.84,
+    use_rumble = 1,
+    debug_gamedata_mapping = 0
 }
 
 local defaultSettings = {}
@@ -101,7 +103,7 @@ local meta = {
     debris_limit = {
         type = "float",
         min = 0.0,
-        max = 3.0,
+        max = 1.0,
         step = 0.01,
         label = "Debris Limit"
     },
@@ -137,13 +139,28 @@ local meta = {
         max = 2.0,
         step = 0.01,
         label = "Aspect Y Mult"
+    },
+    use_rumble = {
+        type = "int",
+        min = 0,
+        max = 1,
+        step = 1,
+        label = "Rumble"
+    },
+    debug_gamedata_mapping = {
+        type = "int",
+        min = 0,
+        max = 1,
+        step = 1,
+        label = "Debug File Logging",
+        hint = "Log all file open/close operations"
     }
 }
 
 -- Display order for settings
-local order = {"stick_deadzone", "force_widescreen", "use_bloom", "trilinear_filter", "disable_mipmaps", "language",
+local order = {"stick_deadzone",  "force_widescreen", "use_bloom", "use_rumble", "trilinear_filter", "disable_mipmaps", "language",
                "character_shadows", "drop_highest_lod", "vsync_enabled", "decal_limit", "debris_limit",
-               "aspect_ratio_x_mult", "aspect_ratio_y_mult"}
+               "aspect_ratio_x_mult", "aspect_ratio_y_mult", "debug_gamedata_mapping"}
 
 -- Language names
 local languageNames = {
@@ -280,19 +297,21 @@ local function serialize()
     push("disable_mipmaps", settings.disable_mipmaps)
     push("language", settings.language)
     push("crouch_toggle", settings.crouch_toggle)
-    push("character_shadows", settings.character_shadows, "1 - one blob; 2 - foot shadows")
+    push("character_shadows", settings.character_shadows)
     push("drop_highest_lod", settings.drop_highest_lod)
     push("show_weapon_menu", settings.show_weapon_menu)
-    push("vsync_enabled", settings.vsync_enabled, "Enable VSync (1=on,0=off)")
+    push("vsync_enabled", settings.vsync_enabled)
     push("decal_limit", settings.decal_limit)
     push("debris_limit", settings.debris_limit)
     if settings.mod_file ~= "" then
         push("mod_file", settings.mod_file)
     end
-    push("force_widescreen", settings.force_widescreen, "0=disabled,1=enabled")
-    push("stick_deadzone", settings.stick_deadzone, "0.0-1.0")
+    push("force_widescreen", settings.force_widescreen)
+    push("stick_deadzone", settings.stick_deadzone)
     push("aspect_ratio_x_mult", settings.aspect_ratio_x_mult)
     push("aspect_ratio_y_mult", settings.aspect_ratio_y_mult)
+    push("use_rumble", settings.use_rumble)
+    push("debug_gamedata_mapping", settings.debug_gamedata_mapping)
     return table.concat(out, "\n") .. "\n"
 end
 

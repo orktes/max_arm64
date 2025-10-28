@@ -30,7 +30,9 @@
   CONFIG_VAR_INT(force_widescreen);                                            \
   CONFIG_VAR_FLOAT(stick_deadzone);                                            \
   CONFIG_VAR_FLOAT(aspect_ratio_x_mult);                                       \
-  CONFIG_VAR_FLOAT(aspect_ratio_y_mult);
+  CONFIG_VAR_FLOAT(aspect_ratio_y_mult);                                       \
+  CONFIG_VAR_INT(use_rumble);                                                  \
+  CONFIG_VAR_INT(debug_gamedata_mapping);                                      \
 
 Config config;
 
@@ -80,6 +82,8 @@ int read_config(const char *file) {
   config.stick_deadzone = 0.1f; // default deadzone for analog sticks
   config.aspect_ratio_x_mult = 1.18f;
   config.aspect_ratio_y_mult = 0.84f;
+  config.use_rumble = 1; // enable rumble by default
+  config.debug_gamedata_mapping = 0; // disable debug logging by default
 
   FILE *f = fopen(file, "r");
   if (f == NULL)

@@ -115,24 +115,6 @@ static void check_for_4x3(void) {
   }
 }
 
-int static check_filesystem_case_sensitive(void) {
-  // check with a file we know that exists
-
-  char *path = strdup(CONFIG_NAME);
-  for (char *p = path; *p; ++p) {
-    *p = toupper((unsigned char)*p);
-  }
-
-  struct stat st;
-  if (stat(path, &st) < 0) {
-    free(path);
-    return 1;
-  }
-
-  free(path);
-  return 0;
-}
-
 int main(void) {
   debugPrintf("Max Payne for ARM64 Linux\n");
 
@@ -148,20 +130,13 @@ int main(void) {
   // debugPrintf("Checking system calls...\n");
   check_syscalls();
 
+  // Support case sensitive file systems
+  if (gamedata_mapping_init() < 0) {
+    fatal_error("Failed to initialize gamedata mapping");
+  }
+  
   debugPrintf("Checking data files...\n");
   check_data();
-
-  if (check_filesystem_case_sensitive()) {
-    debugPrintf("Case sensitive filesystem detected! Creating a lookup map "
-                "for filepaths.\n");
-
-    if (gamedata_mapping_init() < 0) {
-      fatal_error("Failed to initialize gamedata mapping");
-    }
-  } else {
-    debugPrintf("Case insensitive filesystem detected, no need for gamedata "
-                "mapping.\n");
-  }
 
   // debugPrintf("heap size = %u KB\n", MEMORY_MB * 1024);
   // debugPrintf(" lib base = %p\n", heap_so_base);

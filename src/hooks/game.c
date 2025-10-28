@@ -58,6 +58,7 @@ static uint8_t fake_tls[0x100];
 // GameController and input state
 static int gamecontroller_initialized = 0;
 static SDL_GameController *gamecontroller = NULL;
+static int gamecontroller_supports_rumble = 0;
 
 static int r1_pressed = 0;
 
@@ -100,6 +101,15 @@ static void init_gamecontroller(void) {
   }
 
   gamecontroller_initialized = 1;
+  gamecontroller_supports_rumble = gamecontroller &&
+                                  SDL_GameControllerHasRumble(
+                                      gamecontroller) == SDL_TRUE;
+
+  if (gamecontroller_supports_rumble) {
+    debugPrintf("INPUT DEBUG: Gamecontroller supports rumble\n");
+  } else {
+    debugPrintf("INPUT DEBUG: Gamecontroller does not support rumble\n");
+  }
 }
 
 // Safe hook that checks if symbol exists before hooking
@@ -522,6 +532,26 @@ int MaxPayne_ConfiguredInput_readShoot(void *this) {
   return r1_pressed; // shoot while R1 is held
 }
 
+void VibratePhone(int duration_ms) {
+}
+
+// 
+void Mobile_Vibrate(int duration_ms) {
+  if (!gamecontroller_initialized) {
+    return;
+  }
+
+  if (!gamecontroller) {
+    return;
+  }
+
+  if (gamecontroller_supports_rumble == 0) {
+    return;
+  }
+
+  SDL_GameControllerRumble(gamecontroller, 0xFFFF, 0xFFFF, duration_ms);
+}
+
 int GetAndroidCurrentLanguage(void) {
   debugPrintf("GetAndroidCurrentLanguage: returning %d\n", config.language);
   // this will be loaded from config.txt; cap it
@@ -550,6 +580,47 @@ int R_File_setFileSystemRoot(void *this, const char *root) {
   const int res = R_File_loadArchives(this);
   R_File_enablePriorityArchive(this, config.mod_file);
   return res;
+}
+
+// Hook for R_Throw<R_FileException_ArchiveNotFound> to log missing archives
+// This function is called when the game tries to throw an archive not found exception
+// Since we don't have a trampoline to the original function, we'll log and abort
+static void R_Throw_ArchiveNotFound_hook(const void *exception) {
+  // Always log archive not found exceptions
+  if (exception) {
+    // The exception object has the filename string embedded at offset 48
+    // Based on analysis: the structure appears to be vtable pointers followed by the string
+    const char *archivename = (const char *)exception + 48;
+    debugPrintf("EXCEPTION: ArchiveNotFoundException - Archive: %s\n", archivename);
+  } else {
+    debugPrintf("EXCEPTION: ArchiveNotFoundException - (null exception object)\n");
+  }
+  
+  debugPrintf("ArchiveNotFoundException - game will likely crash\n");
+  abort(); // Terminate since we can't properly forward the exception
+}
+
+// Hook for R_Throw<R_FileException_FileNotFound> to log missing files
+// This function is called when the game tries to throw a file not found exception
+// Since we don't have a trampoline to the original function, we'll log and abort
+static void R_Throw_FileNotFound_hook(const void *exception) {
+  // Always log file not found exceptions
+  if (exception) {
+    // The exception object has a pointer to the error message string at offset 8
+    // The message includes "File <filename> not found"
+    void **ptrs = (void **)exception;
+    if (ptrs[1]) {
+      const char *message = (const char *)ptrs[1];
+      debugPrintf("EXCEPTION: FileNotFoundException - %s\n", message);
+    } else {
+      debugPrintf("EXCEPTION: FileNotFoundException - (null message pointer)\n");
+    }
+  } else {
+    debugPrintf("EXCEPTION: FileNotFoundException - (null exception object)\n");
+  }
+  
+  debugPrintf("FileNotFoundException - game will likely crash\n");
+  abort(); // Terminate since we can't properly forward the exception
 }
 
 int X_DetailLevel_getCharacterShadows(void) { return config.character_shadows; }
@@ -740,8 +811,8 @@ void patch_game(void) {
 
   // TODO implement these once we figure out how to do it with R36S (it
   // supports vibrate if hardware hooked up)
-  hook_arm64(so_find_addr("_Z12VibratePhonei"), (uintptr_t)ret0);
-  hook_arm64(so_find_addr("_Z14Mobile_Vibratei"), (uintptr_t)ret0);
+  hook_arm64(so_find_addr("_Z12VibratePhonei"), (uintptr_t)VibratePhone);
+  hook_arm64(so_find_addr("_Z14Mobile_Vibratei"), (uintptr_t)Mobile_Vibrate);
 
   hook_arm64(so_find_addr("_Z15ExitAndroidGamev"), (uintptr_t)ExitAndroidGame);
 
@@ -793,4 +864,20 @@ void patch_game(void) {
   deviceChip = (int *)so_find_addr_rx("deviceChip");
   deviceForm = (int *)so_find_addr_rx("deviceForm");
   definedDevice = (int *)so_find_addr_rx("definedDevice");
+  
+  // Hook R_Throw for ArchiveNotFoundException to log missing archives
+  // The actual function template instance for R_Throw<R_FileException_ArchiveNotFound>
+  uintptr_t r_throw_archive_not_found = so_find_addr("_Z7R_ThrowI31R_FileException_ArchiveNotFoundEvRKT_");
+  if (r_throw_archive_not_found) {
+    hook_arm64(r_throw_archive_not_found, (uintptr_t)R_Throw_ArchiveNotFound_hook);
+    debugPrintf("Hooked R_Throw<ArchiveNotFoundException> at 0x%lx\n", r_throw_archive_not_found);
+  }
+  
+  // Hook R_Throw for FileNotFoundException to log missing files
+  // The actual function template instance for R_Throw<R_FileException_FileNotFound>
+  uintptr_t r_throw_file_not_found = so_find_addr("_Z7R_ThrowI28R_FileException_FileNotFoundEvRKT_");
+  if (r_throw_file_not_found) {
+    hook_arm64(r_throw_file_not_found, (uintptr_t)R_Throw_FileNotFound_hook);
+    debugPrintf("Hooked R_Throw<FileNotFoundException> at 0x%lx\n", r_throw_file_not_found);
+  }
 }

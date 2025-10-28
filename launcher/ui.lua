@@ -455,11 +455,25 @@ local function drawConfig(uiState, config)
     buttonX = buttonX + drawButton(buttonX, buttonY - 5, "X", "Defaults") + 15
     buttonX = buttonX + drawButton(buttonX, buttonY - 5, "B", "Return")
 
-    for i, key in ipairs(order) do
+    -- Calculate visible items based on available space
+    local settingsStartY = y
+    local settingsEndY = buttonY - 10 -- Leave some space before buttons
+    local itemHeight = 28
+    local availableHeight = settingsEndY - settingsStartY
+    local maxVisibleItems = math.floor(availableHeight / itemHeight)
+    
+    -- Get scroll offset from uiState
+    local scrollOffset = uiState.configScrollOffset or 0
+    local startIndex = scrollOffset + 1
+    local endIndex = math.min(scrollOffset + maxVisibleItems, #order)
+
+    for i = startIndex, endIndex do
+        local key = order[i]
         local m = meta[key]
         local label = m.label or key
         local isSel = (i == uiState.sel)
-        local sy = y + (i - 1) * 28
+        local displayIndex = i - scrollOffset
+        local sy = y + (displayIndex - 1) * itemHeight
 
         if isSel then
             love.graphics.setColor(1, 1, 1, 0.15)
@@ -482,6 +496,34 @@ local function drawConfig(uiState, config)
             love.graphics.print(m.hint, x + 200, sy + 16)
         end
     end
+    
+    -- Draw scrollbar if there are more items than can fit on screen
+    if #order > maxVisibleItems then
+        local scrollbarX = 620
+        local scrollbarWidth = 6
+        local scrollbarHeight = availableHeight - 20 -- Leave some padding
+        local scrollbarY = settingsStartY + 10
+        
+        -- Background track
+        love.graphics.setColor(0.3, 0.3, 0.3, 0.5)
+        love.graphics.rectangle("fill", scrollbarX, scrollbarY, scrollbarWidth, scrollbarHeight)
+        
+        -- Calculate thumb size and position
+        local thumbHeightRatio = maxVisibleItems / #order
+        local thumbHeight = math.max(20, scrollbarHeight * thumbHeightRatio)
+        local scrollRatio = scrollOffset / math.max(1, #order - maxVisibleItems)
+        local thumbY = scrollbarY + (scrollbarHeight - thumbHeight) * scrollRatio
+        
+        -- Scrollbar thumb
+        love.graphics.setColor(0.7, 0.7, 0.7, 0.8)
+        love.graphics.rectangle("fill", scrollbarX, thumbY, scrollbarWidth, thumbHeight)
+        
+        -- Scrollbar thumb border
+        love.graphics.setColor(0.9, 0.9, 0.9, 1)
+        love.graphics.rectangle("line", scrollbarX, thumbY, scrollbarWidth, thumbHeight)
+    end
+    
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 -- Draw message overlay

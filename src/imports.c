@@ -261,7 +261,13 @@ FILE *fopen_wrapper(const char *filename, const char *mode) {
   if (mapped) {
     filename = mapped;
   }
-  return fopen(filename, mode);
+  FILE *file = fopen(filename, mode);
+  if (config.debug_gamedata_mapping) {
+    if (!file) {
+      debugPrintf("Failed to open file: %s\n", filename);
+    }
+  }
+  return file;
 }
 
 // import table
