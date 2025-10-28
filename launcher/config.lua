@@ -19,7 +19,8 @@ local settings = {
     stick_deadzone = 0.1,
     aspect_ratio_x_mult = 1.18,
     aspect_ratio_y_mult = 0.84,
-    use_rumble = 1
+    use_rumble = 1,
+    debug_gamedata_mapping = 0
 }
 
 local defaultSettings = {}
@@ -145,13 +146,21 @@ local meta = {
         max = 1,
         step = 1,
         label = "Rumble"
+    },
+    debug_gamedata_mapping = {
+        type = "int",
+        min = 0,
+        max = 1,
+        step = 1,
+        label = "Debug File Logging",
+        hint = "Log all file open/close operations"
     }
 }
 
 -- Display order for settings
 local order = {"stick_deadzone",  "force_widescreen", "use_bloom", "use_rumble", "trilinear_filter", "disable_mipmaps", "language",
                "character_shadows", "drop_highest_lod", "vsync_enabled", "decal_limit", "debris_limit",
-               "aspect_ratio_x_mult", "aspect_ratio_y_mult"}
+               "aspect_ratio_x_mult", "aspect_ratio_y_mult", "debug_gamedata_mapping"}
 
 -- Language names
 local languageNames = {
@@ -302,6 +311,7 @@ local function serialize()
     push("aspect_ratio_x_mult", settings.aspect_ratio_x_mult)
     push("aspect_ratio_y_mult", settings.aspect_ratio_y_mult)
     push("use_rumble", settings.use_rumble)
+    push("debug_gamedata_mapping", settings.debug_gamedata_mapping)
     return table.concat(out, "\n") .. "\n"
 end
 

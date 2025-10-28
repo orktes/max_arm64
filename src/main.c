@@ -148,9 +148,6 @@ int main(void) {
   // debugPrintf("Checking system calls...\n");
   check_syscalls();
 
-  debugPrintf("Checking data files...\n");
-  check_data();
-
   if (check_filesystem_case_sensitive()) {
     debugPrintf("Case sensitive filesystem detected! Creating a lookup map "
                 "for filepaths.\n");
@@ -162,6 +159,9 @@ int main(void) {
     debugPrintf("Case insensitive filesystem detected, no need for gamedata "
                 "mapping.\n");
   }
+
+  debugPrintf("Checking data files...\n");
+  check_data();
 
   // debugPrintf("heap size = %u KB\n", MEMORY_MB * 1024);
   // debugPrintf(" lib base = %p\n", heap_so_base);

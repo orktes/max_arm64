@@ -40,7 +40,8 @@ typedef struct {
   float stick_deadzone; // deadzone for analog sticks (0.0 - 1.0)
   float aspect_ratio_x_mult; // aspect ratio multiplier for X axis
   float aspect_ratio_y_mult; // aspect ratio multiplier for Y axis
-  int use_rumble; // 0=enabled, 1=disabled
+  int use_rumble; // 0=disabled, 1=enabled
+  int debug_gamedata_mapping; // 0=disabled, 1=enabled (debug file open/close)
 } Config;
 
 extern Config config;
