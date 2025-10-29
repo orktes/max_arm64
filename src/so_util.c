@@ -9,11 +9,13 @@
 
 #include <assert.h>
 #include <elf.h>
+#include <errno.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include "config.h"
 #include "error.h"
@@ -125,23 +127,39 @@ void so_free_temp(void) {
   so_base = NULL;
 }
 
+static inline size_t round_up(size_t x, size_t a) {
+  return (x + a - 1) & ~(a - 1);
+}
+
+static int protect_range(void *start, size_t len, int prot) {
+  long ps = sysconf(_SC_PAGESIZE);
+  if (ps <= 0)
+    ps = 4096; // fallback
+  uintptr_t addr = (uintptr_t)start;
+  uintptr_t page_base = addr & ~((uintptr_t)ps - 1);
+  size_t head = addr - page_base;
+  size_t plen = round_up(len + head, (size_t)ps);
+  if (mprotect((void *)page_base, plen, prot) != 0) {
+    debugPrintf("mprotect(%p, %zu, 0x%x) failed: %s\n", (void *)page_base, plen,
+                prot, strerror(errno));
+    return -1;
+  }
+  return 0;
+}
+
 void so_finalize(void) {
   // For ARM64 Linux, use mprotect instead of Nintendo Switch syscalls
 
-  // map code sections as R+X
-  const size_t text_asize = ALIGN_MEM(text_size, 0x1000); // align to page
-  if (mprotect(text_virtbase, text_asize, PROT_READ | PROT_EXEC) != 0) {
-    fatal_error("Error: could not map %zu bytes of RX memory at %p", text_asize,
-                text_virtbase);
+  // Map the text PT_LOAD as RX
+  if (protect_range(text_virtbase, text_size, PROT_READ | PROT_EXEC) != 0) {
+    fatal_error("Error: could not set RX on text at %p (size %zu)",
+                text_virtbase, text_size);
   }
 
-  // map the rest as R+W
-  const size_t rest_asize = load_size - text_asize;
-  const uintptr_t rest_virtbase = (uintptr_t)text_virtbase + text_asize;
-  if (mprotect((void *)rest_virtbase, rest_asize, PROT_READ | PROT_WRITE) !=
-      0) {
-    fatal_error("Error: could not map %zu bytes of RW memory at %p", rest_asize,
-                (void *)rest_virtbase);
+  // Map the data PT_LOAD as RW
+  if (protect_range(data_virtbase, data_size, PROT_READ | PROT_WRITE) != 0) {
+    fatal_error("Error: could not set RW on data at %p (size %zu)",
+                data_virtbase, data_size);
   }
 }
 
