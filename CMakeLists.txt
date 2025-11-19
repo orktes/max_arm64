@@ -114,7 +114,16 @@ add_custom_target(upload-to-device
     COMMAND ./scripts/build_and_upload.sh ${TEST_DEVICE_IP} ${TEST_DEVICE_GAME_PATH} ${TEST_DEVICE_SH_PATH}
 )
 
+# ---- GLIBC version check target ----
+add_custom_target(check-glibc
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/check_glibc_version.sh ${CMAKE_BINARY_DIR}/${TARGET_NAME}
+    DEPENDS ${TARGET_NAME}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Checking GLIBC version requirements"
+)
+
 message(STATUS "Build configuration:")
 message(STATUS "  Target: ${TARGET_NAME}")
 message(STATUS "  Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "  Using pkg-config for all dependencies")
+

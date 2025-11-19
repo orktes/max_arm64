@@ -1,5 +1,5 @@
 
-FROM monkeyx/retro_builder:arm64
+FROM ghcr.io/orktes/max_amd64/retro_builder:arm64
 
 RUN apt-get update && apt-get install -y \
     zip \
