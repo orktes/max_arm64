@@ -132,7 +132,7 @@ static inline size_t round_up(size_t x, size_t a) {
 }
 
 static int protect_range(void *start, size_t len, int prot) {
-  long ps = sysconf(_SC_PAGESIZE);
+  int ps = getpagesize();
   if (ps <= 0)
     ps = 4096; // fallback
   uintptr_t addr = (uintptr_t)start;

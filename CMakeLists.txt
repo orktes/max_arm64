@@ -27,6 +27,11 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2 -ffunction-sections ${ARCH_FLAG
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -O2 -ffunction-sections ${ARCH_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -g ${ARCH_FLAGS} -Wl,-Map,${TARGET_NAME}.map")
 
+# ---- Force glibc 2.30 compatibility ----
+add_compile_definitions(__GLIBC_MINOR__=30)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+
 # ---- Sources ----
 set(SOURCES
     src/main.c
