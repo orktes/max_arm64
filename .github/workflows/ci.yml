@@ -40,6 +40,24 @@ jobs:
           cmake .
           make archive
           
+    - name: Check GLIBC version requirements
+      uses: devcontainers/ci@v0.3
+      with:
+        imageName: ghcr.io/orktes/max_amd64/devcontainer
+        cacheFrom: ghcr.io/orktes/max_amd64/devcontainer
+        push: never
+        configFile: .devcontainer/devcontainer.json
+        runCmd: |
+          echo "Checking GLIBC version requirements..."
+          MAX_GLIBC=$(objdump -T maxpayne_arm64 | grep GLIBC_ | awk '{print $5}' | grep -v "^0*$" | sort -V | tail -n1)
+          echo "Maximum GLIBC version required: $MAX_GLIBC"
+          if [ "$MAX_GLIBC" != "GLIBC_2.29" ] && [ -n "$MAX_GLIBC" ]; then
+            echo "ERROR: Binary requires $MAX_GLIBC but must not exceed GLIBC_2.29"
+            echo "This ensures compatibility with target devices."
+            exit 1
+          fi
+          echo "✓ GLIBC version check passed: $MAX_GLIBC"
+          
     - name: Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/v')
