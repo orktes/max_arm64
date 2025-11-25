@@ -92,7 +92,7 @@ add_custom_target(package
     COMMAND ${CMAKE_COMMAND} -E copy "port/gameinfo.xml" "package/gameinfo.xml"
     COMMAND ${CMAKE_COMMAND} -E copy "port/screenshot.png" "package/screenshot.png"
     COMMAND ${CMAKE_COMMAND} -E copy_directory "port/tools" "package/maxpayne/tools"
-    COMMAND /bin/sh -c '(cd launcher && zip -9 -r ../package/maxpayne/launcher.love .)'
+    COMMAND /bin/sh -c '(cd launcher && find . -type f | sort | zip -9 -X ../package/maxpayne/launcher.love -@)'
     COMMAND /bin/sh -c './scripts/generate_version_string.sh > package/maxpayne/VERSION.txt'
     COMMAND /bin/sh -c './scripts/generate_port_json.sh > package/port.json'
     COMMAND /bin/sh -c './scripts/generate_port_readme.sh > package/README.md'
